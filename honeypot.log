@@ -1,0 +1,15 @@
+2025-11-24 13:46:58,404 INFO Starting Honeypot...
+2025-11-24 13:46:58,405 INFO HTTP Honeypot running on 0.0.0.0:8080
+2025-11-24 13:46:58,405 INFO Telnet Honeypot running on 0.0.0.0:2323
+2025-11-24 13:46:58,405 INFO SSH Honeypot running on 0.0.0.0:2222
+2025-11-24 13:46:59,562 INFO Stopping Honeypot...
+2025-11-24 13:47:21,520 INFO Starting Honeypot...
+2025-11-24 13:47:21,521 INFO HTTP Honeypot running on 0.0.0.0:8080
+2025-11-24 13:47:21,521 INFO Telnet Honeypot running on 0.0.0.0:2323
+2025-11-24 13:47:21,521 INFO SSH Honeypot running on 0.0.0.0:2222
+2025-11-24 13:47:36,771 INFO HTTP Connection from 127.0.0.1:51894
+2025-11-24 13:47:36,771 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
+2025-11-24 13:47:37,616 INFO SSH Connection from 127.0.0.1:51896
+2025-11-24 13:47:38,483 INFO Telnet Connection from 127.0.0.1:51899
+2025-11-24 13:47:38,483 INFO Telnet Login attempt from 127.0.0.1: user='testuser', password='testpass'
+2025-11-24 13:47:49,378 INFO Stopping Honeypot...
