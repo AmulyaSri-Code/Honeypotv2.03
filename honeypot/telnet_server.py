@@ -1,33 +1,33 @@
 import socket
-import threading
+import concurrent.futures
 from .logger import setup_logger
 
 logger = setup_logger('telnet_honeypot')
 
 class TelnetHoneypot:
-    def __init__(self, host='0.0.0.0', port=2323):
+    def __init__(self, host='0.0.0.0', port=2323, max_workers=50):
         self.host = host
         self.port = port
+        self.max_workers = max_workers
         self.server_socket = None
         self.is_running = False
+        self.executor = None
 
     def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers)
+
         try:
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(5)
             self.is_running = True
-            logger.info(f"Telnet Honeypot running on {self.host}:{self.port}")
+            logger.info(f"Telnet Honeypot running on {self.host}:{self.port} with {self.max_workers} workers")
 
             while self.is_running:
                 try:
                     client_socket, addr = self.server_socket.accept()
-                    client_handler = threading.Thread(
-                        target=self.handle_client,
-                        args=(client_socket, addr)
-                    )
-                    client_handler.start()
+                    self.executor.submit(self.handle_client, client_socket, addr)
                 except OSError:
                     break
         except Exception as e:
@@ -66,3 +66,5 @@ class TelnetHoneypot:
         self.is_running = False
         if self.server_socket:
             self.server_socket.close()
+        if self.executor:
+            self.executor.shutdown(wait=False)
