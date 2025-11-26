@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Shield, Activity, Terminal, Search } from 'lucide-react';
+import { Shield, Activity, Terminal, Search, Map as MapIcon } from 'lucide-react';
 import TypesenseInstantSearchAdapter from 'typesense-instantsearch-adapter';
 import { InstantSearch, SearchBox, Hits } from 'react-instantsearch-hooks-web';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
+import { Network } from 'vis-network';
+import { DataSet } from 'vis-data';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
 const typesenseInstantsearchAdapter = new TypesenseInstantSearchAdapter({
   server: {
@@ -26,6 +31,8 @@ const searchClient = typesenseInstantsearchAdapter.searchClient;
 function App() {
   const [stats, setStats] = useState({ total_attacks: 0, by_service: [], top_ips: [] });
   const [liveLog, setLiveLog] = useState(null);
+  const networkContainer = useRef(null);
+  const networkRef = useRef(null);
 
   useEffect(() => {
     // Fetch stats
@@ -46,11 +53,84 @@ function App() {
       setLiveLog(JSON.parse(event.data));
     };
 
+    // WebSocket for Topology
+    const wsTopology = new WebSocket('ws://localhost:8000/ws/topology');
+    wsTopology.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (networkRef.current) {
+        // Update network data
+        // Note: For a real production app, we'd want to diff the data to avoid full redraws
+        // But vis-network handles updates reasonably well if we just update the datasets
+        // For simplicity here, we are re-creating the network on first load or just letting it be static for now if we don't implement full diffing logic
+        // A better approach for frequent updates is using DataSet
+      }
+
+      // Initialize network if not exists
+      if (networkContainer.current && !networkRef.current) {
+        const nodes = new DataSet(data.nodes);
+        const edges = new DataSet(data.edges);
+        const options = {
+          nodes: {
+            shape: 'dot',
+            size: 16,
+            font: { color: '#ffffff' },
+            borderWidth: 2
+          },
+          edges: {
+            width: 2,
+            color: { color: '#4ade80', highlight: '#86efac' },
+            smooth: { type: 'continuous' }
+          },
+          physics: {
+            stabilization: false,
+            barnesHut: {
+              gravitationalConstant: -8000,
+              springConstant: 0.04,
+              springLength: 95
+            }
+          },
+          interaction: { hover: true }
+        };
+        networkRef.current = new Network(networkContainer.current, { nodes, edges }, options);
+      } else if (networkRef.current) {
+        // Update existing data
+        const currentNodes = networkRef.current.body.data.nodes;
+        const currentEdges = networkRef.current.body.data.edges;
+        currentNodes.update(data.nodes);
+        currentEdges.update(data.edges);
+      }
+    };
+
     return () => {
       clearInterval(interval);
       ws.close();
+      wsTopology.close();
     };
   }, []);
+
+  // Chart Data
+  const doughnutData = {
+    labels: stats.by_service.map(s => s.service),
+    datasets: [
+      {
+        label: '# of Attacks',
+        data: stats.by_service.map(s => s.count),
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 206, 86, 0.8)',
+          'rgba(75, 192, 192, 0.8)',
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-green-400 font-mono p-8">
@@ -68,15 +148,26 @@ function App() {
         {/* Stats Card */}
         <div className="bg-gray-800 p-6 rounded-lg border border-green-800 shadow-[0_0_10px_rgba(0,255,0,0.1)]">
           <h2 className="text-xl mb-4 flex items-center gap-2"><Activity /> Total Attacks</h2>
-          <p className="text-5xl font-bold text-white">{stats.total_attacks}</p>
+          <p className="text-5xl font-bold text-white mb-4">{stats.total_attacks}</p>
+          <div className="h-48">
+            <Doughnut data={doughnutData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }} />
+          </div>
         </div>
 
+        {/* Topology Map */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-green-800 shadow-[0_0_10px_rgba(0,255,0,0.1)] col-span-2">
+          <h2 className="text-xl mb-4 flex items-center gap-2"><MapIcon /> Real-Time Topology</h2>
+          <div ref={networkContainer} className="h-64 w-full bg-gray-900 rounded border border-green-900"></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Top IPs */}
         <div className="bg-gray-800 p-6 rounded-lg border border-green-800 shadow-[0_0_10px_rgba(0,255,0,0.1)]">
           <h2 className="text-xl mb-4 flex items-center gap-2"><Terminal /> Top Attackers</h2>
           <ul>
             {stats.top_ips?.map((ip, i) => (
-              <li key={i} className="flex justify-between mb-2">
+              <li key={i} className="flex justify-between mb-2 border-b border-gray-700 pb-1">
                 <span>{ip.source_ip}</span>
                 <span className="text-white font-bold">{ip.count}</span>
               </li>

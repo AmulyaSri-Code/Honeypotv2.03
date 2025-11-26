@@ -75,3 +75,7 @@
 2025-11-24 13:55:37,236 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
 2025-11-24 13:55:37,236 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
 2025-11-24 13:57:28,788 INFO Stopping Honeypot...
+2025-11-24 14:03:48,594 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-24 14:03:48,637 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-24 14:03:48,637 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-24 14:03:48,638 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers

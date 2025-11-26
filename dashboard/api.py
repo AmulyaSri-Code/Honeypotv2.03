@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 import typesense
 import mysql.connector
@@ -79,13 +79,31 @@ def search_logs(q: str = "*", page: int = 1):
     except Exception as e:
         return {"error": str(e)}
 
+# --- WebSocket Manager ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+topology_manager = ConnectionManager()
+
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect(websocket)
     try:
         while True:
-            # In a real app, we'd use a pub/sub system. 
-            # For now, we'll just poll the DB for the latest log every second
+            # Poll DB for latest log
             try:
                 cnx = mysql.connector.connect(**DB_CONFIG)
                 cursor = cnx.cursor(dictionary=True)
@@ -95,13 +113,69 @@ async def websocket_endpoint(websocket: WebSocket):
                 cnx.close()
                 
                 if latest_log:
-                    # Convert datetime to string
                     if isinstance(latest_log['timestamp'], datetime):
                         latest_log['timestamp'] = latest_log['timestamp'].isoformat()
                     await websocket.send_json(latest_log)
             except Exception:
                 pass
-            
             await asyncio.sleep(2)
     except Exception:
-        pass
+        manager.disconnect(websocket)
+
+@app.websocket("/ws/topology")
+async def topology_endpoint(websocket: WebSocket):
+    await topology_manager.connect(websocket)
+    try:
+        while True:
+            # Build Topology Data
+            # Nodes: Honeypot (Center) + Attackers
+            # Edges: Attackers -> Honeypot
+            try:
+                cnx = mysql.connector.connect(**DB_CONFIG)
+                cursor = cnx.cursor(dictionary=True)
+                
+                # Get recent unique IPs
+                cursor.execute("SELECT DISTINCT source_ip, service FROM logs WHERE timestamp > NOW() - INTERVAL 10 MINUTE AND source_ip IS NOT NULL")
+                rows = cursor.fetchall()
+                cursor.close()
+                cnx.close()
+
+                nodes = [{"id": 1, "label": "Honeypot", "group": "server", "color": "#10B981"}] # Green
+                edges = []
+                
+                for i, row in enumerate(rows):
+                    attacker_id = i + 2
+                    nodes.append({
+                        "id": attacker_id, 
+                        "label": row['source_ip'], 
+                        "group": "attacker",
+                        "color": "#EF4444" # Red
+                    })
+                    edges.append({
+                        "from": attacker_id, 
+                        "to": 1,
+                        "label": row['service']
+                    })
+
+                topology_data = {"nodes": nodes, "edges": edges}
+                await websocket.send_json(topology_data)
+            except Exception as e:
+                print(f"Topology error: {e}")
+            
+            await asyncio.sleep(5)
+    except Exception:
+        topology_manager.disconnect(websocket)
+
+@app.post("/api/falco")
+async def falco_webhook(request: Request):
+    try:
+        payload = await request.json()
+        # Log Falco alert to DB or just print for now
+        print(f"Received Falco Alert: {payload}")
+        
+        # You could also broadcast this to the live feed if you wanted
+        # await manager.broadcast(json.dumps({"type": "alert", "data": payload}))
+        
+        return {"status": "received"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

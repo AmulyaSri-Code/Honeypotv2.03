@@ -53,3 +53,7 @@
 {"timestamp": "2025-11-24 13:55:37,236", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
 {"timestamp": "2025-11-24 13:55:37,236", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
 {"timestamp": "2025-11-24 13:57:28,788", "level": "INFO", "service": "main", "message": "Stopping Honeypot..."}
+{"timestamp": "2025-11-24 14:03:48,594", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-24 14:03:48,637", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-24 14:03:48,638", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-24 14:03:48,637", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
