@@ -1,61 +1,19 @@
 version: '3.8'
 services:
-  # --- ELK Stack ---
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    container_name: elasticsearch
+  mysql:
+    image: mysql:8.0
+    container_name: honeypot_mysql
+    restart: always
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: honeypot_logs
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_USER: honeypot
+      MYSQL_PASSWORD: honeypot_password
     ports:
-      - "9200:9200"
+      - "3306:3306"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.1
-    container_name: logstash
-    volumes:
-      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-      - ./logs:/usr/share/logstash/logs # Mount logs directory to read honeypot.json
-    ports:
-      - "5044:5044"
-      - "5000:5000/tcp"
-      - "5000:5000/udp"
-      - "9600:9600"
-    depends_on:
-      - elasticsearch
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
-    container_name: kibana
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-
-  # --- Legacy / Optional ---
-  typesense:
-    image: typesense/typesense:0.25.2
-    container_name: typesense
-    restart: on-failure
-    ports:
-      - "8108:8108"
-    volumes:
-      - ./typesense-data:/data
-    command: '--data-dir /data --api-key=xyz --enable-cors'
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: on-failure
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./grafana-data:/var/lib/grafana
+      - mysql_data:/var/lib/mysql
 
 volumes:
-  es_data:
+  mysql_data:

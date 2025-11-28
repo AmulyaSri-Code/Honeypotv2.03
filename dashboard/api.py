@@ -1,10 +1,12 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
-import typesense
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import mysql.connector
 import json
 import asyncio
 from datetime import datetime
+import os
 
 app = FastAPI()
 
@@ -17,22 +19,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Typesense Client
-client = typesense.Client({
-    'nodes': [{
-        'host': 'localhost',
-        'port': '8108',
-        'protocol': 'http'
-    }],
-    'api_key': 'xyz',
-    'connection_timeout_seconds': 2
-})
+# Serve Static Files (Frontend)
+frontend_dist = os.path.join(os.path.dirname(__file__), "frontend/dist")
+if os.path.exists(frontend_dist):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+
+@app.get("/")
+async def serve_frontend():
+    if os.path.exists(os.path.join(frontend_dist, "index.html")):
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+    return {"message": "Frontend not built or found"}
 
 # MySQL Config
 DB_CONFIG = {
     'host': 'localhost',
-    'user': 'root',
-    'password': 'password',
+    'user': 'honeypot',
+    'password': 'honeypot_password',
     'database': 'honeypot_logs'
 }
 
@@ -65,19 +67,7 @@ def get_stats():
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/search")
-def search_logs(q: str = "*", page: int = 1):
-    try:
-        search_parameters = {
-            'q': q,
-            'query_by': 'message,service,source_ip',
-            'sort_by': 'timestamp:desc',
-            'page': page,
-            'per_page': 10
-        }
-        return client.collections['logs'].documents.search(search_parameters)
-    except Exception as e:
-        return {"error": str(e)}
+# Search endpoint removed (Typesense deprecated)
 
 # --- WebSocket Manager ---
 class ConnectionManager:

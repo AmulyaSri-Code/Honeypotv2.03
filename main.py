@@ -1,5 +1,6 @@
 import time
 import sys
+import threading
 from honeypot.logger import setup_logger
 from honeypot.http_server import HTTPHoneypot
 from honeypot.ssh_server import SSHHoneypot
@@ -23,6 +24,17 @@ def main():
     service_manager.add_service(http_honeypot)
     service_manager.add_service(ssh_honeypot)
     service_manager.add_service(telnet_honeypot)
+
+    # Start API Server in a separate thread
+    import uvicorn
+    from dashboard.api import app
+    
+    def start_api():
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+    api_thread = threading.Thread(target=start_api, daemon=True)
+    api_thread.start()
+    logger.info("API Server started on port 8000")
 
     # Start all services
     service_manager.start_all()

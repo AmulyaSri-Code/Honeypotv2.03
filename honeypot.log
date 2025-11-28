@@ -79,3 +79,39 @@
 2025-11-24 14:03:48,637 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
 2025-11-24 14:03:48,637 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
 2025-11-24 14:03:48,638 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 22:38:42,490 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:38:42,506 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-28 22:38:42,506 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-28 22:38:42,506 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 22:45:29,092 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:45:29,297 INFO API Server started on port 8000
+2025-11-28 22:45:29,306 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-28 22:45:29,306 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 22:45:29,306 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-28 22:45:58,023 INFO Stopping Honeypot...
+2025-11-28 22:46:53,934 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:46:54,132 INFO API Server started on port 8000
+2025-11-28 22:46:54,144 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-28 22:46:54,144 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-28 22:46:54,144 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 22:47:52,876 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:47:53,093 INFO API Server started on port 8000
+2025-11-28 22:47:53,112 ERROR Failed to start HTTP Honeypot: [Errno 48] Address already in use
+2025-11-28 22:47:53,112 ERROR Failed to start SSH Honeypot: [Errno 48] Address already in use
+2025-11-28 22:47:53,113 ERROR Failed to start Telnet Honeypot: [Errno 48] Address already in use
+2025-11-28 22:48:36,343 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:48:36,587 INFO API Server started on port 8000
+2025-11-28 22:48:36,609 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-28 22:48:36,609 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 22:48:36,609 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-28 22:48:50,286 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:48:50,547 INFO API Server started on port 8000
+2025-11-28 22:48:50,550 ERROR Failed to start Telnet Honeypot: [Errno 48] Address already in use
+2025-11-28 22:48:50,550 ERROR Failed to start SSH Honeypot: [Errno 48] Address already in use
+2025-11-28 22:48:50,550 ERROR Failed to start HTTP Honeypot: [Errno 48] Address already in use
+2025-11-28 22:49:20,822 INFO Starting Honeypot with Multi-Threaded Architecture...
+2025-11-28 22:49:21,037 INFO API Server started on port 8000
+2025-11-28 22:49:21,067 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-28 22:49:21,067 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-28 22:49:21,067 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-28 23:01:01,847 INFO Stopping Honeypot...

@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger('db_handler')
 
 class DBHandler:
-    def __init__(self, host='localhost', user='root', password='password', database='honeypot_logs'):
+    def __init__(self, host='localhost', user='honeypot', password='honeypot_password', database='honeypot_logs'):
         self.config = {
             'host': host,
             'user': user,

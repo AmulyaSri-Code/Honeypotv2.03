@@ -57,3 +57,39 @@
 {"timestamp": "2025-11-24 14:03:48,637", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
 {"timestamp": "2025-11-24 14:03:48,638", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
 {"timestamp": "2025-11-24 14:03:48,637", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:38:42,490", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:38:42,506", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-28 22:38:42,506", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-28 22:38:42,506", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:45:29,092", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:45:29,297", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:45:29,306", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-28 22:45:29,306", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:45:29,306", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-28 22:45:58,023", "level": "INFO", "service": "main", "message": "Stopping Honeypot..."}
+{"timestamp": "2025-11-28 22:46:53,934", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:46:54,132", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:46:54,144", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-28 22:46:54,144", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-28 22:46:54,144", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:47:52,876", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:47:53,093", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:47:53,112", "level": "ERROR", "service": "ssh_honeypot", "message": "Failed to start SSH Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:47:53,112", "level": "ERROR", "service": "http_honeypot", "message": "Failed to start HTTP Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:47:53,113", "level": "ERROR", "service": "telnet_honeypot", "message": "Failed to start Telnet Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:48:36,343", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:48:36,587", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:48:36,609", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-28 22:48:36,609", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-28 22:48:36,609", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:48:50,286", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:48:50,547", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:48:50,550", "level": "ERROR", "service": "http_honeypot", "message": "Failed to start HTTP Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:48:50,550", "level": "ERROR", "service": "ssh_honeypot", "message": "Failed to start SSH Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:48:50,550", "level": "ERROR", "service": "telnet_honeypot", "message": "Failed to start Telnet Honeypot: [Errno 48] Address already in use"}
+{"timestamp": "2025-11-28 22:49:20,822", "level": "INFO", "service": "main", "message": "Starting Honeypot with Multi-Threaded Architecture..."}
+{"timestamp": "2025-11-28 22:49:21,037", "level": "INFO", "service": "main", "message": "API Server started on port 8000"}
+{"timestamp": "2025-11-28 22:49:21,067", "level": "INFO", "service": "ssh_honeypot", "message": "SSH Honeypot running on 0.0.0.0:2222 with 50 workers"}
+{"timestamp": "2025-11-28 22:49:21,067", "level": "INFO", "service": "http_honeypot", "message": "HTTP Honeypot running on 0.0.0.0:8080 with 50 workers"}
+{"timestamp": "2025-11-28 22:49:21,067", "level": "INFO", "service": "telnet_honeypot", "message": "Telnet Honeypot running on 0.0.0.0:2323 with 50 workers"}
+{"timestamp": "2025-11-28 23:01:01,847", "level": "INFO", "service": "main", "message": "Stopping Honeypot..."}
