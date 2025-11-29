@@ -1,0 +1,6 @@
+2025-11-29 13:34:23,324 INFO Starting Single-File Honeypot...
+2025-11-29 13:34:23,326 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-11-29 13:34:23,326 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-11-29 13:34:23,326 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-11-29 13:34:28,335 INFO HTTP Connection from 127.0.0.1:50951
+2025-11-29 13:34:28,335 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
