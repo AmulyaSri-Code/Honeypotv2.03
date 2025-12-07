@@ -91,22 +91,40 @@ topology_manager = ConnectionManager()
 @app.websocket("/ws/live")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+    last_id = 0
+    
+    # Initialize last_id to current max to avoid flooding old logs
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor(dictionary=True)
+        cursor.execute("SELECT MAX(id) as max_id FROM logs")
+        row = cursor.fetchone()
+        if row and row['max_id']:
+            last_id = row['max_id']
+        cursor.close()
+        cnx.close()
+    except Exception:
+        pass
+
     try:
         while True:
-            # Poll DB for latest log
+            # Poll DB for NEW logs
             try:
                 cnx = mysql.connector.connect(**DB_CONFIG)
                 cursor = cnx.cursor(dictionary=True)
-                cursor.execute("SELECT * FROM logs ORDER BY id DESC LIMIT 1")
-                latest_log = cursor.fetchone()
+                cursor.execute("SELECT * FROM logs WHERE id > %s ORDER BY id ASC", (last_id,))
+                new_logs = cursor.fetchall()
                 cursor.close()
                 cnx.close()
                 
-                if latest_log:
-                    if isinstance(latest_log['timestamp'], datetime):
-                        latest_log['timestamp'] = latest_log['timestamp'].isoformat()
-                    await websocket.send_json(latest_log)
-            except Exception:
+                for log in new_logs:
+                    if isinstance(log['timestamp'], datetime):
+                        log['timestamp'] = log['timestamp'].isoformat()
+                    await websocket.send_json(log)
+                    last_id = log['id']
+                    
+            except Exception as e:
+                print(f"WS Error: {e}")
                 pass
             await asyncio.sleep(2)
     except Exception:

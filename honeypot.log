@@ -1,117 +1,30 @@
-2025-11-24 13:46:58,404 INFO Starting Honeypot...
-2025-11-24 13:46:58,405 INFO HTTP Honeypot running on 0.0.0.0:8080
-2025-11-24 13:46:58,405 INFO Telnet Honeypot running on 0.0.0.0:2323
-2025-11-24 13:46:58,405 INFO SSH Honeypot running on 0.0.0.0:2222
-2025-11-24 13:46:59,562 INFO Stopping Honeypot...
-2025-11-24 13:47:21,520 INFO Starting Honeypot...
-2025-11-24 13:47:21,521 INFO HTTP Honeypot running on 0.0.0.0:8080
-2025-11-24 13:47:21,521 INFO Telnet Honeypot running on 0.0.0.0:2323
-2025-11-24 13:47:21,521 INFO SSH Honeypot running on 0.0.0.0:2222
-2025-11-24 13:47:36,771 INFO HTTP Connection from 127.0.0.1:51894
-2025-11-24 13:47:36,771 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:47:37,616 INFO SSH Connection from 127.0.0.1:51896
-2025-11-24 13:47:38,483 INFO Telnet Connection from 127.0.0.1:51899
-2025-11-24 13:47:38,483 INFO Telnet Login attempt from 127.0.0.1: user='testuser', password='testpass'
-2025-11-24 13:47:49,378 INFO Stopping Honeypot...
-2025-11-24 13:49:58,548 INFO Starting Honeypot...
-2025-11-24 13:49:58,549 INFO HTTP Honeypot running on 0.0.0.0:8080
-2025-11-24 13:49:58,549 INFO SSH Honeypot running on 0.0.0.0:2222
-2025-11-24 13:49:58,549 INFO Telnet Honeypot running on 0.0.0.0:2323
-2025-11-24 13:49:59,852 INFO HTTP Connection from 127.0.0.1:52009
-2025-11-24 13:49:59,853 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:50:14,393 INFO Stopping Honeypot...
-2025-11-24 13:55:04,597 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-24 13:55:04,605 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-24 13:55:04,605 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-24 13:55:04,605 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-24 13:55:07,512 INFO HTTP Connection from 127.0.0.1:52570
-2025-11-24 13:55:07,512 INFO HTTP Connection from 127.0.0.1:52571
-2025-11-24 13:55:07,512 INFO HTTP Connection from 127.0.0.1:52572
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52573
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52574
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52575
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52578
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52584
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52588
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52590
-2025-11-24 13:55:07,513 INFO HTTP Connection from 127.0.0.1:52592
-2025-11-24 13:55:07,519 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,524 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,530 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,536 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,541 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,543 INFO HTTP Connection from 127.0.0.1:52591
-2025-11-24 13:55:07,543 INFO HTTP Connection from 127.0.0.1:52589
-2025-11-24 13:55:07,543 INFO HTTP Connection from 127.0.0.1:52586
-2025-11-24 13:55:07,543 INFO HTTP Connection from 127.0.0.1:52585
-2025-11-24 13:55:07,543 INFO HTTP Connection from 127.0.0.1:52583
-2025-11-24 13:55:07,546 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,551 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,559 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,564 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,571 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,573 INFO HTTP Connection from 127.0.0.1:52582
-2025-11-24 13:55:07,573 INFO HTTP Connection from 127.0.0.1:52581
-2025-11-24 13:55:07,573 INFO HTTP Connection from 127.0.0.1:52579
-2025-11-24 13:55:07,573 INFO HTTP Connection from 127.0.0.1:52580
-2025-11-24 13:55:07,577 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,613 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,618 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,626 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,632 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,638 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,668 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,672 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,677 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:07,684 INFO HTTP Request from 127.0.0.1: GET / HTTP/1.1
-2025-11-24 13:55:23,286 INFO Stopping Honeypot...
-2025-11-24 13:55:25,111 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-24 13:55:25,119 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-24 13:55:25,119 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-24 13:55:25,119 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-24 13:55:26,765 INFO Stopping Honeypot...
-2025-11-24 13:55:37,229 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-24 13:55:37,236 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-24 13:55:37,236 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-24 13:55:37,236 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-24 13:57:28,788 INFO Stopping Honeypot...
-2025-11-24 14:03:48,594 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-24 14:03:48,637 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-24 14:03:48,637 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-24 14:03:48,638 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 22:38:42,490 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:38:42,506 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-28 22:38:42,506 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-28 22:38:42,506 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 22:45:29,092 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:45:29,297 INFO API Server started on port 8000
-2025-11-28 22:45:29,306 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-28 22:45:29,306 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 22:45:29,306 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-28 22:45:58,023 INFO Stopping Honeypot...
-2025-11-28 22:46:53,934 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:46:54,132 INFO API Server started on port 8000
-2025-11-28 22:46:54,144 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-28 22:46:54,144 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-28 22:46:54,144 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 22:47:52,876 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:47:53,093 INFO API Server started on port 8000
-2025-11-28 22:47:53,112 ERROR Failed to start HTTP Honeypot: [Errno 48] Address already in use
-2025-11-28 22:47:53,112 ERROR Failed to start SSH Honeypot: [Errno 48] Address already in use
-2025-11-28 22:47:53,113 ERROR Failed to start Telnet Honeypot: [Errno 48] Address already in use
-2025-11-28 22:48:36,343 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:48:36,587 INFO API Server started on port 8000
-2025-11-28 22:48:36,609 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-28 22:48:36,609 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 22:48:36,609 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-28 22:48:50,286 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:48:50,547 INFO API Server started on port 8000
-2025-11-28 22:48:50,550 ERROR Failed to start Telnet Honeypot: [Errno 48] Address already in use
-2025-11-28 22:48:50,550 ERROR Failed to start SSH Honeypot: [Errno 48] Address already in use
-2025-11-28 22:48:50,550 ERROR Failed to start HTTP Honeypot: [Errno 48] Address already in use
-2025-11-28 22:49:20,822 INFO Starting Honeypot with Multi-Threaded Architecture...
-2025-11-28 22:49:21,037 INFO API Server started on port 8000
-2025-11-28 22:49:21,067 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
-2025-11-28 22:49:21,067 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
-2025-11-28 22:49:21,067 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
-2025-11-28 23:01:01,847 INFO Stopping Honeypot...
+2025-12-08 02:06:47,838 INFO Starting Single-File Honeypot...
+2025-12-08 02:06:47,839 INFO HTTP Honeypot running on 0.0.0.0:8080 with 50 workers
+2025-12-08 02:06:47,839 INFO Telnet Honeypot running on 0.0.0.0:2323 with 50 workers
+2025-12-08 02:06:47,839 INFO SSH Honeypot running on 0.0.0.0:2222 with 50 workers
+2025-12-08 02:06:52,341 INFO SSH Connection from 127.0.0.1:55078
+Socket exception: Connection reset by peer (54)
+2025-12-08 02:06:52,356 ERROR Error handling SSH client ('127.0.0.1', 55078): [Errno 54] Connection reset by peer
+2025-12-08 02:07:16,553 INFO SSH Connection from 127.0.0.1:55437
+2025-12-08 02:07:20,109 INFO SSH Login attempt #1 from 127.0.0.1: user='user', password='as'
+2025-12-08 02:07:20,152 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:07:21,599 INFO SSH Login attempt #2 from 127.0.0.1: user='user', password='as'
+2025-12-08 02:07:21,622 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:07:22,481 INFO SSH Login attempt #3 from 127.0.0.1: user='user', password='as'
+2025-12-08 02:07:22,502 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:07:49,839 INFO SSH Connection from 127.0.0.1:55964
+2025-12-08 02:07:58,477 INFO SSH Login attempt #1 from 127.0.0.1: user='user', password='12'
+2025-12-08 02:07:58,502 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:08:00,612 INFO SSH Login attempt #2 from 127.0.0.1: user='user', password='13'
+2025-12-08 02:08:00,629 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:08:02,060 INFO SSH Login attempt #3 from 127.0.0.1: user='user', password='14'
+2025-12-08 02:08:02,080 INFO Logged to DB: SSH_LOGIN attack from 127.0.0.1
+2025-12-08 02:08:04,313 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:11,091 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:12,333 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:13,654 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:22,866 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:24,475 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:29,460 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:30,739 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
+2025-12-08 02:08:35,211 INFO Logged to DB: SHELL_CMD attack from 127.0.0.1
