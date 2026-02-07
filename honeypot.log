@@ -1,0 +1,126 @@
+2026-02-07 22:20:48,475 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-07 22:20:48,475 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-07 22:20:48,475 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-07 22:20:57,159 - [Session: PENDING] [IP: 127.0.0.1] [Service: TELNET] Status: Connected
+2026-02-07 22:21:07,300 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: LOGIN ATTEMPT: USER=ls
+2026-02-07 22:21:08,466 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: LOGIN ATTEMPT: PASS=ls
+2026-02-07 22:21:10,820 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: ls
+2026-02-07 22:21:14,163 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: whoami
+2026-02-07 22:21:16,761 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: admin
+2026-02-07 22:21:16,762 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: secret
+ls
+pwd
+cat /etc/passwd
+exit
+2026-02-07 22:21:20,509 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:21:23,878 - [Session: ec6e964e] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-07 22:21:49,732 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:21:50,680 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: secret
+2026-02-07 22:21:52,921 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Command: exit
+2026-02-07 22:21:52,921 - [Session: be354335] [IP: 127.0.0.1] [Service: TELNET] Status: Disconnected
+2026-02-07 22:22:00,468 - [Session: 92308cd3] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=ls
+2026-02-07 22:22:10,480 - [Session: 92308cd3] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-07 22:22:24,317 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:22:24,505 - [Session: 6b3d9664] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-07 22:22:34,506 - [Session: 6b3d9664] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-07 22:22:42,712 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-07 22:22:42,712 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-07 22:22:42,712 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-07 22:22:44,478 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:22:44,670 - [Session: 7d0c068d] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-07 22:22:54,676 - [Session: 7d0c068d] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-07 22:23:05,387 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-07 22:23:05,387 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-07 22:23:05,387 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-07 22:23:07,134 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:23:07,308 - [Session: f6ab83d7] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-07 22:23:07,309 - SSH: Received channel request session for session f6ab83d7
+2026-02-07 22:23:17,314 - [Session: f6ab83d7] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-07 22:24:28,559 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-07 22:24:28,559 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-07 22:24:28,559 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-07 22:24:30,475 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:24:30,475 - starting thread (server mode): 0x6a7b0e0
+2026-02-07 22:24:30,475 - Local version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-07 22:24:30,475 - Remote version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-07 22:24:30,475 - Connected (version 2.0, client paramiko_4.0.0)
+2026-02-07 22:24:30,475 - === Key exchange possibilities ===
+2026-02-07 22:24:30,475 - kex algos: curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group16-sha512, diffie-hellman-group-exchange-sha256, diffie-hellman-group14-sha256, diffie-hellman-group-exchange-sha1, diffie-hellman-group14-sha1, diffie-hellman-group1-sha1, ext-info-c, kex-strict-c-v00@openssh.com
+2026-02-07 22:24:30,475 - server key: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256, ssh-rsa, ssh-ed25519-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, ecdsa-sha2-nistp384-cert-v01@openssh.com, ecdsa-sha2-nistp521-cert-v01@openssh.com, rsa-sha2-512-cert-v01@openssh.com, rsa-sha2-256-cert-v01@openssh.com, ssh-rsa-cert-v01@openssh.com
+2026-02-07 22:24:30,475 - client encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-07 22:24:30,475 - server encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-07 22:24:30,475 - client mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-07 22:24:30,475 - server mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-07 22:24:30,476 - client compress: none
+2026-02-07 22:24:30,476 - server compress: none
+2026-02-07 22:24:30,476 - client lang: <none>
+2026-02-07 22:24:30,476 - server lang: <none>
+2026-02-07 22:24:30,476 - kex follows: False
+2026-02-07 22:24:30,476 - === Key exchange agreements ===
+2026-02-07 22:24:30,476 - Strict kex mode: True
+2026-02-07 22:24:30,476 - Kex: curve25519-sha256@libssh.org
+2026-02-07 22:24:30,476 - HostKey: rsa-sha2-512
+2026-02-07 22:24:30,476 - Cipher: aes128-ctr
+2026-02-07 22:24:30,476 - MAC: hmac-sha2-256
+2026-02-07 22:24:30,476 - Compression: none
+2026-02-07 22:24:30,476 - === End of kex handshake ===
+2026-02-07 22:24:30,482 - Resetting outbound seqno after NEWKEYS due to strict mode
+2026-02-07 22:24:30,483 - kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+2026-02-07 22:24:30,484 - Switch to new keys ...
+2026-02-07 22:24:30,484 - Resetting inbound seqno after NEWKEYS due to strict mode
+2026-02-07 22:24:30,493 - Auth request (type=publickey) service=ssh-connection, username=admin
+2026-02-07 22:24:30,493 - Auth rejected (publickey).
+2026-02-07 22:24:30,661 - Auth request (type=password) service=ssh-connection, username=admin
+2026-02-07 22:24:30,661 - [Session: cdbe73dc] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-07 22:24:30,661 - Auth granted (password).
+2026-02-07 22:24:30,661 - SSH: Received channel request session for session cdbe73dc
+2026-02-07 22:24:30,661 - [chan 0] Max packet in: 32768 bytes
+2026-02-07 22:24:30,661 - [chan 0] Max packet out: 32768 bytes
+2026-02-07 22:24:30,661 - Secsh channel 0 (session) opened.
+2026-02-07 22:24:30,662 - [chan 0] EOF received (0)
+2026-02-07 22:24:30,662 - EOF in transport thread
+2026-02-07 22:24:52,535 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-07 22:24:52,535 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-07 22:24:52,535 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-07 22:24:54,348 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-07 22:24:54,349 - starting thread (server mode): 0x8b7b0e0
+2026-02-07 22:24:54,349 - Local version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-07 22:24:54,350 - Remote version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-07 22:24:54,350 - Connected (version 2.0, client paramiko_4.0.0)
+2026-02-07 22:24:54,351 - === Key exchange possibilities ===
+2026-02-07 22:24:54,351 - kex algos: curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group16-sha512, diffie-hellman-group-exchange-sha256, diffie-hellman-group14-sha256, diffie-hellman-group-exchange-sha1, diffie-hellman-group14-sha1, diffie-hellman-group1-sha1, ext-info-c, kex-strict-c-v00@openssh.com
+2026-02-07 22:24:54,351 - server key: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256, ssh-rsa, ssh-ed25519-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, ecdsa-sha2-nistp384-cert-v01@openssh.com, ecdsa-sha2-nistp521-cert-v01@openssh.com, rsa-sha2-512-cert-v01@openssh.com, rsa-sha2-256-cert-v01@openssh.com, ssh-rsa-cert-v01@openssh.com
+2026-02-07 22:24:54,351 - client encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-07 22:24:54,351 - server encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-07 22:24:54,351 - client mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-07 22:24:54,351 - server mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-07 22:24:54,351 - client compress: none
+2026-02-07 22:24:54,351 - server compress: none
+2026-02-07 22:24:54,351 - client lang: <none>
+2026-02-07 22:24:54,351 - server lang: <none>
+2026-02-07 22:24:54,351 - kex follows: False
+2026-02-07 22:24:54,351 - === Key exchange agreements ===
+2026-02-07 22:24:54,351 - Strict kex mode: True
+2026-02-07 22:24:54,351 - Kex: curve25519-sha256@libssh.org
+2026-02-07 22:24:54,351 - HostKey: rsa-sha2-512
+2026-02-07 22:24:54,351 - Cipher: aes128-ctr
+2026-02-07 22:24:54,351 - MAC: hmac-sha2-256
+2026-02-07 22:24:54,351 - Compression: none
+2026-02-07 22:24:54,351 - === End of kex handshake ===
+2026-02-07 22:24:54,362 - Resetting outbound seqno after NEWKEYS due to strict mode
+2026-02-07 22:24:54,362 - kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+2026-02-07 22:24:54,364 - Switch to new keys ...
+2026-02-07 22:24:54,364 - Resetting inbound seqno after NEWKEYS due to strict mode
+2026-02-07 22:24:54,447 - Auth request (type=publickey) service=ssh-connection, username=admin
+2026-02-07 22:24:54,447 - Auth rejected (publickey).
+2026-02-07 22:24:54,624 - Auth request (type=password) service=ssh-connection, username=admin
+2026-02-07 22:24:54,624 - [Session: 88dda452] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-07 22:24:54,624 - Auth granted (password).
+2026-02-07 22:24:54,624 - SSH: Received channel request session for session 88dda452
+2026-02-07 22:24:54,624 - [chan 0] Max packet in: 32768 bytes
+2026-02-07 22:24:54,624 - [chan 0] Max packet out: 32768 bytes
+2026-02-07 22:24:54,624 - Secsh channel 0 (session) opened.
+2026-02-07 22:24:54,624 - SSH: Received PTY request for session 88dda452
+2026-02-07 22:24:54,625 - SSH: Received shell request for session 88dda452
+2026-02-07 22:24:56,744 - EOF in transport thread
+2026-02-07 22:24:56,745 - [Session: 88dda452] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
