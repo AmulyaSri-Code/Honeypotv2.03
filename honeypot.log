@@ -292,3 +292,28 @@ exit
 2026-02-08 14:51:02,146 - [Session: 0ca505b9] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
 2026-02-08 14:51:18,138 - EOF in transport thread
 2026-02-08 14:51:18,138 - [Session: eeb89512] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-08 15:05:01,617 - SSH honeypot listening on port 2222
+2026-02-08 15:05:01,618 - FTP honeypot listening on port 2121
+2026-02-08 15:05:01,618 - HTTP honeypot listening on port 8080
+2026-02-08 15:05:01,619 - Telnet honeypot listening on port 2323
+2026-02-08 15:05:01,619 - NC (netcat) honeypot listening on port 4444
+2026-02-08 15:05:01,619 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-02-08 15:05:01,619 - Database: honeypot.db | Log: honeypot.log
+2026-02-08 15:05:01,619 - Connections held 2+ min for IP/geolocation tracking. Ctrl+C to stop.
+2026-02-08 15:07:03,661 - SSH honeypot on port 2222
+2026-02-08 15:07:03,662 - FTP honeypot on port 2121
+2026-02-08 15:07:03,663 - HTTP honeypot on port 8080
+2026-02-08 15:07:03,663 - Telnet honeypot on port 2323
+2026-02-08 15:07:03,663 - NC honeypot on port 4444
+2026-02-08 15:07:03,663 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-02-08 15:07:03,663 - DB: honeypot.db | Log: honeypot.log | Ctrl+C to stop
+2026-02-08 15:08:07,310 - SSH honeypot on port 2222
+2026-02-08 15:08:07,311 - FTP honeypot on port 2121
+2026-02-08 15:08:07,311 - HTTP honeypot on port 8080
+2026-02-08 15:08:07,312 - Telnet honeypot on port 2323
+2026-02-08 15:08:07,313 - NC honeypot on port 4444
+2026-02-08 15:08:07,313 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-02-08 15:08:07,313 - DB: honeypot.db | Log: honeypot.log | Ctrl+C to stop
+2026-02-08 15:08:13,691 - Shutting down...
+2026-02-08 15:14:02,980 - [CONNECTION] http (8080) from 127.0.0.1: connected - geo: Local
+2026-02-08 15:14:02,980 - [COMMAND] http (8080) from 127.0.0.1: GET /websocket HTTP/1.1
