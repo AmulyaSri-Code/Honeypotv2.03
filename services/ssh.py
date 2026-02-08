@@ -65,6 +65,8 @@ class SSHHoneyPot:
         except Exception as e:
             self.logger.logger.error(f"Error starting SSH Honeypot: {e}")
 
+            # Test commit
+
     def handle_client(self, client_sock, addr):
         ip = addr[0]
         session_id = self.session_manager.create_session(ip, "SSH")
