@@ -1,7 +1,6 @@
 import threading
 import socket
 import paramiko
-import random
 from core.session import SessionManager
 from core.logger import HoneypotLogger
 from core.shell import FakeShell
@@ -91,13 +90,8 @@ class SSHHoneyPot:
                 channel.close()
                 return
 
-            distro = random.choice(["ubuntu", "fedora"])
-            shell = FakeShell(distro=distro)
-            
-            if distro == "fedora":
-                 channel.send(b"Fedora 34 (Server Edition)\r\nKernel 5.11.12-300.fc34.x86_64 on an x86_64 (ttyS0)\r\n\r\n")
-            else:
-                 channel.send(b"Welcome to Ubuntu 20.04.1 LTS (GNU/Linux 5.4.0-42-generic x86_64)\r\n")
+            shell = FakeShell()
+            channel.send(b"Welcome to Ubuntu 20.04.1 LTS (GNU/Linux 5.4.0-42-generic x86_64)\r\n")
 
             while True:
                 prompt = f"{shell.username}@{shell.hostname}:{shell.cwd}$ "

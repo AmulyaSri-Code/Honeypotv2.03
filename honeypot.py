@@ -3,7 +3,6 @@ import time
 import sys
 import signal
 import logging
-import random
 from core.logger import HoneypotLogger
 from core.session import SessionManager
 from services.telnet import TelnetHoneyPot

@@ -1,6 +1,5 @@
 import socket
 import threading
-import random
 from core.session import SessionManager
 from core.logger import HoneypotLogger
 from core.shell import FakeShell
@@ -34,16 +33,10 @@ class TelnetHoneyPot:
     def handle_client(self, client_sock, addr):
         ip = addr[0]
         session_id = self.session_manager.create_session(ip, "TELNET")
-        
-        distro = random.choice(["ubuntu", "fedora"])
-        shell = FakeShell(distro=distro)
+        shell = FakeShell()
         
         try:
-            if distro == "fedora":
-                 client_sock.send(b"Fedora 34 (Server Edition)\r\nKernel 5.11.12-300.fc34.x86_64 on an x86_64 (tty1)\r\n\r\n")
-            else:
-                 client_sock.send(b"Welcome to Ubuntu 20.04.1 LTS (GNU/Linux 5.4.0-42-generic x86_64)\r\n")
-
+            client_sock.send(b"Welcome to Ubuntu 20.04.1 LTS (GNU/Linux 5.4.0-42-generic x86_64)\r\n")
             client_sock.send(b"login: ")
             username = client_sock.recv(1024).decode('utf-8', errors='ignore').strip()
             self.logger.log_command(session_id, ip, "TELNET", f"LOGIN ATTEMPT: USER={username}")
