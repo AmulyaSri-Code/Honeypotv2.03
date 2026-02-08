@@ -317,3 +317,11 @@ exit
 2026-02-08 15:08:13,691 - Shutting down...
 2026-02-08 15:14:02,980 - [CONNECTION] http (8080) from 127.0.0.1: connected - geo: Local
 2026-02-08 15:14:02,980 - [COMMAND] http (8080) from 127.0.0.1: GET /websocket HTTP/1.1
+2026-02-08 15:28:33,948 - SSH honeypot on port 2222
+2026-02-08 15:28:33,949 - FTP honeypot on port 2121
+2026-02-08 15:28:33,950 - HTTP honeypot on port 8080
+2026-02-08 15:28:33,950 - Telnet honeypot on port 2323
+2026-02-08 15:28:33,951 - NC honeypot on port 4444
+2026-02-08 15:28:33,951 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-02-08 15:28:33,951 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
+2026-02-08 15:28:33,951 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.

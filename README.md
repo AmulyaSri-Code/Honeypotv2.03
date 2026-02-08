@@ -16,6 +16,16 @@ python ml/train.py
 ### Add your own labeled commands:
 Edit `ml/dataset.csv` — add rows: `command,attack_category`
 
+## Dashboard
+
+Futuristic web dashboard with live stats, attack classification, connections, and command feed.
+
+```bash
+python api.py
+```
+
+Open http://localhost:5000 — dark cyber theme, auto-refresh every 5 seconds.
+
 ## Services & Ports
 
 | Service | Port | Notes |
