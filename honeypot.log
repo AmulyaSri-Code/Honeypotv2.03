@@ -169,3 +169,126 @@ exit
 2026-02-08 10:58:26,288 - SSH: Received shell request for session 0886be09
 2026-02-08 10:58:28,408 - EOF in transport thread
 2026-02-08 10:58:28,409 - [Session: 0886be09] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-08 14:38:17,726 - Telnet Honeypot listening on 0.0.0.0:2323
+2026-02-08 14:38:17,727 - SSH Honeypot listening on 0.0.0.0:2222
+2026-02-08 14:38:17,727 - HoneyPot services started. Press Ctrl+C to stop.
+2026-02-08 14:38:38,239 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-08 14:38:38,240 - starting thread (server mode): 0xee5d4050
+2026-02-08 14:38:38,240 - Local version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:38:38,241 - Remote version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:38:38,241 - Connected (version 2.0, client paramiko_4.0.0)
+2026-02-08 14:38:38,241 - === Key exchange possibilities ===
+2026-02-08 14:38:38,241 - kex algos: curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group16-sha512, diffie-hellman-group-exchange-sha256, diffie-hellman-group14-sha256, diffie-hellman-group-exchange-sha1, diffie-hellman-group14-sha1, diffie-hellman-group1-sha1, ext-info-c, kex-strict-c-v00@openssh.com
+2026-02-08 14:38:38,241 - server key: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256, ssh-rsa, ssh-ed25519-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, ecdsa-sha2-nistp384-cert-v01@openssh.com, ecdsa-sha2-nistp521-cert-v01@openssh.com, rsa-sha2-512-cert-v01@openssh.com, rsa-sha2-256-cert-v01@openssh.com, ssh-rsa-cert-v01@openssh.com
+2026-02-08 14:38:38,241 - client encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:38:38,241 - server encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:38:38,241 - client mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:38:38,241 - server mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:38:38,241 - client compress: none
+2026-02-08 14:38:38,241 - server compress: none
+2026-02-08 14:38:38,241 - client lang: <none>
+2026-02-08 14:38:38,241 - server lang: <none>
+2026-02-08 14:38:38,241 - kex follows: False
+2026-02-08 14:38:38,242 - === Key exchange agreements ===
+2026-02-08 14:38:38,242 - Strict kex mode: True
+2026-02-08 14:38:38,242 - Kex: curve25519-sha256@libssh.org
+2026-02-08 14:38:38,242 - HostKey: rsa-sha2-512
+2026-02-08 14:38:38,242 - Cipher: aes128-ctr
+2026-02-08 14:38:38,242 - MAC: hmac-sha2-256
+2026-02-08 14:38:38,242 - Compression: none
+2026-02-08 14:38:38,242 - === End of kex handshake ===
+2026-02-08 14:38:38,243 - Resetting outbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:38:38,243 - kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+2026-02-08 14:38:38,245 - Switch to new keys ...
+2026-02-08 14:38:38,245 - Resetting inbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:38:38,246 - Auth request (type=password) service=ssh-connection, username=admin
+2026-02-08 14:38:38,246 - [Session: ec9a3b73] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-08 14:38:38,246 - Auth granted (password).
+2026-02-08 14:38:38,247 - SSH: Received channel request session for session ec9a3b73
+2026-02-08 14:38:38,247 - [chan 0] Max packet in: 32768 bytes
+2026-02-08 14:38:38,247 - [chan 0] Max packet out: 32768 bytes
+2026-02-08 14:38:38,247 - Secsh channel 0 (session) opened.
+2026-02-08 14:38:38,247 - SSH: Received PTY request for session ec9a3b73
+2026-02-08 14:38:38,248 - SSH: Received shell request for session ec9a3b73
+2026-02-08 14:39:29,839 - EOF in transport thread
+2026-02-08 14:39:29,839 - [Session: ec9a3b73] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-08 14:50:08,303 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-08 14:50:08,398 - starting thread (server mode): 0xee5d4d70
+2026-02-08 14:50:08,398 - Local version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:50:08,399 - Remote version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:50:08,399 - Connected (version 2.0, client paramiko_4.0.0)
+2026-02-08 14:50:08,461 - === Key exchange possibilities ===
+2026-02-08 14:50:08,461 - kex algos: curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group16-sha512, diffie-hellman-group-exchange-sha256, diffie-hellman-group14-sha256, diffie-hellman-group-exchange-sha1, diffie-hellman-group14-sha1, diffie-hellman-group1-sha1, ext-info-c, kex-strict-c-v00@openssh.com
+2026-02-08 14:50:08,461 - server key: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256, ssh-rsa, ssh-ed25519-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, ecdsa-sha2-nistp384-cert-v01@openssh.com, ecdsa-sha2-nistp521-cert-v01@openssh.com, rsa-sha2-512-cert-v01@openssh.com, rsa-sha2-256-cert-v01@openssh.com, ssh-rsa-cert-v01@openssh.com
+2026-02-08 14:50:08,461 - client encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:50:08,461 - server encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:50:08,461 - client mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:50:08,461 - server mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:50:08,461 - client compress: none
+2026-02-08 14:50:08,461 - server compress: none
+2026-02-08 14:50:08,461 - client lang: <none>
+2026-02-08 14:50:08,461 - server lang: <none>
+2026-02-08 14:50:08,461 - kex follows: False
+2026-02-08 14:50:08,461 - === Key exchange agreements ===
+2026-02-08 14:50:08,461 - Strict kex mode: True
+2026-02-08 14:50:08,462 - Kex: curve25519-sha256@libssh.org
+2026-02-08 14:50:08,462 - HostKey: rsa-sha2-512
+2026-02-08 14:50:08,462 - Cipher: aes128-ctr
+2026-02-08 14:50:08,462 - MAC: hmac-sha2-256
+2026-02-08 14:50:08,462 - Compression: none
+2026-02-08 14:50:08,462 - === End of kex handshake ===
+2026-02-08 14:50:08,463 - Resetting outbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:50:08,463 - kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+2026-02-08 14:50:08,464 - Switch to new keys ...
+2026-02-08 14:50:08,464 - Resetting inbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:50:08,465 - Auth request (type=password) service=ssh-connection, username=admin
+2026-02-08 14:50:08,465 - [Session: 0ca505b9] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-08 14:50:08,465 - Auth granted (password).
+2026-02-08 14:50:08,465 - SSH: Received channel request session for session 0ca505b9
+2026-02-08 14:50:08,466 - [chan 0] Max packet in: 32768 bytes
+2026-02-08 14:50:08,466 - [chan 0] Max packet out: 32768 bytes
+2026-02-08 14:50:08,466 - Secsh channel 0 (session) opened.
+2026-02-08 14:50:08,466 - SSH: Received PTY request for session 0ca505b9
+2026-02-08 14:50:08,466 - SSH: Received shell request for session 0ca505b9
+2026-02-08 14:50:26,551 - [Session: PENDING] [IP: 127.0.0.1] [Service: SSH] Status: Connected
+2026-02-08 14:50:26,552 - starting thread (server mode): 0xee5d5010
+2026-02-08 14:50:26,553 - Local version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:50:26,553 - Remote version/idstring: SSH-2.0-paramiko_4.0.0
+2026-02-08 14:50:26,553 - Connected (version 2.0, client paramiko_4.0.0)
+2026-02-08 14:50:26,554 - === Key exchange possibilities ===
+2026-02-08 14:50:26,554 - kex algos: curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group16-sha512, diffie-hellman-group-exchange-sha256, diffie-hellman-group14-sha256, diffie-hellman-group-exchange-sha1, diffie-hellman-group14-sha1, diffie-hellman-group1-sha1, ext-info-c, kex-strict-c-v00@openssh.com
+2026-02-08 14:50:26,554 - server key: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256, ssh-rsa, ssh-ed25519-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, ecdsa-sha2-nistp384-cert-v01@openssh.com, ecdsa-sha2-nistp521-cert-v01@openssh.com, rsa-sha2-512-cert-v01@openssh.com, rsa-sha2-256-cert-v01@openssh.com, ssh-rsa-cert-v01@openssh.com
+2026-02-08 14:50:26,554 - client encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:50:26,554 - server encrypt: aes128-ctr, aes192-ctr, aes256-ctr, aes128-cbc, aes192-cbc, aes256-cbc, 3des-cbc, aes128-gcm@openssh.com, aes256-gcm@openssh.com
+2026-02-08 14:50:26,554 - client mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:50:26,554 - server mac: hmac-sha2-256, hmac-sha2-512, hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com, hmac-sha1, hmac-md5, hmac-sha1-96, hmac-md5-96
+2026-02-08 14:50:26,554 - client compress: none
+2026-02-08 14:50:26,554 - server compress: none
+2026-02-08 14:50:26,554 - client lang: <none>
+2026-02-08 14:50:26,554 - server lang: <none>
+2026-02-08 14:50:26,554 - kex follows: False
+2026-02-08 14:50:26,554 - === Key exchange agreements ===
+2026-02-08 14:50:26,554 - Strict kex mode: True
+2026-02-08 14:50:26,554 - Kex: curve25519-sha256@libssh.org
+2026-02-08 14:50:26,554 - HostKey: rsa-sha2-512
+2026-02-08 14:50:26,554 - Cipher: aes128-ctr
+2026-02-08 14:50:26,554 - MAC: hmac-sha2-256
+2026-02-08 14:50:26,554 - Compression: none
+2026-02-08 14:50:26,554 - === End of kex handshake ===
+2026-02-08 14:50:26,555 - Resetting outbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:50:26,555 - kex engine KexCurve25519 specified hash_algo <built-in function openssl_sha256>
+2026-02-08 14:50:26,556 - Switch to new keys ...
+2026-02-08 14:50:26,556 - Resetting inbound seqno after NEWKEYS due to strict mode
+2026-02-08 14:50:26,557 - Auth request (type=password) service=ssh-connection, username=admin
+2026-02-08 14:50:26,557 - [Session: eeb89512] [IP: 127.0.0.1] [Service: SSH] Command: LOGIN ATTEMPT: USER=admin PASS=password
+2026-02-08 14:50:26,557 - Auth granted (password).
+2026-02-08 14:50:26,558 - SSH: Received channel request session for session eeb89512
+2026-02-08 14:50:26,558 - [chan 0] Max packet in: 32768 bytes
+2026-02-08 14:50:26,558 - [chan 0] Max packet out: 32768 bytes
+2026-02-08 14:50:26,558 - Secsh channel 0 (session) opened.
+2026-02-08 14:50:26,558 - SSH: Received PTY request for session eeb89512
+2026-02-08 14:50:26,559 - SSH: Received shell request for session eeb89512
+2026-02-08 14:51:02,145 - EOF in transport thread
+2026-02-08 14:51:02,146 - [Session: 0ca505b9] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
+2026-02-08 14:51:18,138 - EOF in transport thread
+2026-02-08 14:51:18,138 - [Session: eeb89512] [IP: 127.0.0.1] [Service: SSH] Status: Disconnected
