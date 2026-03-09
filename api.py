@@ -1,14 +1,32 @@
 """
-Dashboard API backend - serves honeypot stats and logs.
-Run: python api.py (default http://localhost:5000)
+Dashboard API backend - serves honeypot stats, logs, and manages services.
+Run: python api.py (default http://localhost:5050)
 """
 import os
 import sqlite3
 from collections import Counter
+import logging
 from flask import Flask, jsonify, send_from_directory, request
 
+from honeypot import Logger, HoneypotDatabase, SSHService, FTPService, HTTPService, TelnetService, NCService
+
 app = Flask(__name__, static_folder="dashboard", static_url_path="")
+# Silence the default Flask/Werkzeug HTTP logs
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "honeypot.db")
+
+# Global honeypot services
+log = Logger()
+hp_db = HoneypotDatabase(DB_PATH)
+services = {
+    "ssh": SSHService("ssh", 2222, log, hp_db),
+    "ftp": FTPService("ftp", 2121, log, hp_db),
+    "http": HTTPService("http", 8080, log, hp_db),
+    "telnet": TelnetService("telnet", 2323, log, hp_db),
+    "nc": NCService("nc", 4444, log, hp_db),
+}
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -54,7 +72,7 @@ def connections():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, ip, port, service, timestamp, country, city, session_duration_sec
+        SELECT id, ip, port, service, timestamp, country, city, session_duration_sec, lat, lon
         FROM connections ORDER BY id DESC LIMIT ?
     """, (req_limit,))
     rows = cur.fetchall()
@@ -87,5 +105,30 @@ def attacks():
     conn.close()
     return jsonify([{"category": r[0], "count": r[1]} for r in rows])
 
+@app.route("/api/services")
+def get_services():
+    status = {}
+    for name, svc in services.items():
+        status[name] = {"running": svc.running, "port": svc.port}
+    return jsonify(status)
+
+@app.route("/api/services/<name>/toggle", methods=["POST"])
+def toggle_service(name):
+    if name not in services:
+        return jsonify({"error": "Service not found"}), 404
+    svc = services[name]
+    if svc.running:
+        svc.stop()
+        log.info(f"Service {name} manually stopped via API.")
+    else:
+        svc.start()
+        log.info(f"Service {name} manually started via API.")
+    return jsonify({"success": True, "running": svc.running, "service": name})
+
+def start_services():
+    for name, svc in services.items():
+        if not svc.running:
+            svc.start()
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5050, debug=False)

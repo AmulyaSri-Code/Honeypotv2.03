@@ -325,3 +325,56 @@ exit
 2026-02-08 15:28:33,951 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
 2026-02-08 15:28:33,951 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
 2026-02-08 15:28:33,951 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.
+2026-03-09 15:15:46,096 - SSH honeypot on port 2222
+2026-03-09 15:15:46,096 - FTP honeypot on port 2121
+2026-03-09 15:15:46,097 - HTTP honeypot on port 8080
+2026-03-09 15:15:46,097 - Telnet honeypot on port 2323
+2026-03-09 15:15:46,097 - NC honeypot on port 4444
+2026-03-09 15:16:29,468 - SSH honeypot on port 2222
+2026-03-09 15:16:29,468 - FTP honeypot on port 2121
+2026-03-09 15:16:29,468 - HTTP honeypot on port 8080
+2026-03-09 15:16:29,469 - Telnet honeypot on port 2323
+2026-03-09 15:16:29,469 - NC honeypot on port 4444
+2026-03-09 15:16:51,317 - Service ssh manually stopped via API.
+2026-03-09 15:16:56,420 - SSH honeypot on port 2222
+2026-03-09 15:16:56,421 - Service ssh manually started via API.
+2026-03-09 15:16:59,160 - Service ftp manually stopped via API.
+2026-03-09 15:16:59,579 - FTP honeypot on port 2121
+2026-03-09 15:16:59,579 - Service ftp manually started via API.
+2026-03-09 15:22:01,600 - SSH honeypot on port 2222
+2026-03-09 15:22:01,601 - FTP honeypot on port 2121
+2026-03-09 15:22:01,601 - HTTP honeypot on port 8080
+2026-03-09 15:22:01,601 - Telnet honeypot on port 2323
+2026-03-09 15:22:01,601 - NC honeypot on port 4444
+2026-03-09 15:22:49,498 - SSH honeypot on port 2222
+2026-03-09 15:22:49,498 - FTP honeypot on port 2121
+2026-03-09 15:22:49,498 - HTTP honeypot on port 8080
+2026-03-09 15:22:49,499 - Telnet honeypot on port 2323
+2026-03-09 15:22:49,499 - NC honeypot on port 4444
+2026-03-09 15:24:32,986 - SSH honeypot on port 2222
+2026-03-09 15:24:32,987 - FTP honeypot on port 2121
+2026-03-09 15:24:32,987 - HTTP honeypot on port 8080
+2026-03-09 15:24:32,987 - Telnet honeypot on port 2323
+2026-03-09 15:24:32,987 - NC honeypot on port 4444
+2026-03-09 15:32:14,795 - SSH honeypot on port 2222
+2026-03-09 15:32:14,796 - FTP honeypot on port 2121
+2026-03-09 15:32:14,796 - HTTP honeypot on port 8080
+2026-03-09 15:32:14,796 - Telnet honeypot on port 2323
+2026-03-09 15:32:14,796 - NC honeypot on port 4444
+2026-03-09 15:33:47,148 - SSH honeypot on port 2222
+2026-03-09 15:33:47,148 - FTP honeypot on port 2121
+2026-03-09 15:33:47,148 - HTTP honeypot on port 8080
+2026-03-09 15:33:47,148 - Telnet honeypot on port 2323
+2026-03-09 15:33:47,148 - NC honeypot on port 4444
+2026-03-09 15:36:42,943 - Service ssh manually stopped via API.
+2026-03-09 15:36:44,824 - Service ftp manually stopped via API.
+2026-03-09 15:36:46,298 - Service telnet manually stopped via API.
+2026-03-09 15:36:47,566 - Service nc manually stopped via API.
+2026-03-09 15:36:49,900 - NC honeypot on port 4444
+2026-03-09 15:36:49,901 - Service nc manually started via API.
+2026-03-09 15:36:50,535 - Service nc manually stopped via API.
+2026-03-09 15:36:51,967 - Service http manually stopped via API.
+2026-03-09 15:36:52,934 - HTTP honeypot on port 8080
+2026-03-09 15:36:52,935 - Service http manually started via API.
+2026-03-09 15:36:54,335 - SSH honeypot on port 2222
+2026-03-09 15:36:54,337 - Service ssh manually started via API.

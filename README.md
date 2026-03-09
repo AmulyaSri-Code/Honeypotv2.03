@@ -24,7 +24,7 @@ Futuristic web dashboard with live stats, attack classification, connections, an
 python api.py
 ```
 
-Open http://localhost:5000 — dark cyber theme, auto-refresh every 5 seconds.
+Open http://localhost:5050 — dark cyber theme, auto-refresh every 5 seconds.
 
 ## Services & Ports
 
