@@ -16,7 +16,7 @@ def preprocess(text):
         text = str(text)
     text = text.lower().strip()
     text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'[^\w\s\-/\.:;|&$`]', '', text)
+    text = re.sub(r'[^\w\s\-/\.:;|&$`<>+*]', '', text)
     return text if text else "unknown"
 
 def _load():

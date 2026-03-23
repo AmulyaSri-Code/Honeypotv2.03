@@ -11,14 +11,16 @@ def test_ssh(host, port=2222):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host, port=port, username="root", password="password", timeout=3)
-        print("    [+] SSH Connected successfully!")
-        
-        # Send a dummy command
-        stdin, stdout, stderr = client.exec_command("whoami")
-        out = stdout.read().decode('utf-8').strip()
-        print(f"    [+] Command 'whoami' output: {out}")
-        client.close()
+        try:
+            client.connect(host, port=port, username="root", password="password", timeout=3)
+            print("    [+] SSH Connected successfully!")
+            
+            # Send a dummy command
+            stdin, stdout, stderr = client.exec_command("whoami")
+            out = stdout.read().decode('utf-8').strip()
+            print(f"    [+] Command 'whoami' output: {out}")
+        finally:
+            client.close()
     except Exception as e:
         print(f"    [-] SSH test failed: {e}")
 
@@ -27,16 +29,17 @@ def test_ftp(host, port=2121):
     try:
         ftp = ftplib.FTP()
         ftp.connect(host, port, timeout=3)
-        # Attempt to login using anonymous credentials
-        ftp.login("anonymous", "test@test.com")
-        print("    [+] FTP Connected successfully!")
-        
         try:
-            ftp.retrlines('LIST')
-        except Exception:
-            pass # Expected to fail if honeypot doesn't implement a real filesystem
-        
-        ftp.quit()
+            # Attempt to login using anonymous credentials
+            ftp.login("anonymous", "test@test.com")
+            print("    [+] FTP Connected successfully!")
+            
+            try:
+                ftp.retrlines('LIST')
+            except Exception:
+                pass # Expected to fail if honeypot doesn't implement a real filesystem
+        finally:
+            ftp.quit()
     except Exception as e:
         print(f"    [-] FTP test failed: {e}")
 
@@ -57,51 +60,47 @@ def test_telnet(host, port=2323):
     print(f"[*] Testing Telnet (Port {port})...")
     try:
         # Using raw socket to avoid dependency on deprecated telnetlib
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(3)
-        s.connect((host, port))
-        print("    [+] Telnet connected successfully!")
-        
-        try:
-            s.recv(1024) # Read initial banner/prompt
-        except socket.timeout:
-            pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(3)
+            s.connect((host, port))
+            print("    [+] Telnet connected successfully!")
             
-        s.sendall(b"root\n")
-        time.sleep(0.5)
-        s.sendall(b"password\n")
-        time.sleep(0.5)
-        s.sendall(b"ls -la\n")
-        
-        try:
-            res = s.recv(1024)
-            if res:
-                print(f"    [+] Telnet output: {res.decode('utf-8', errors='ignore').strip()}")
-        except socket.timeout:
-            pass
+            try:
+                s.recv(1024) # Read initial banner/prompt
+            except socket.timeout:
+                pass
+                
+            s.sendall(b"root\n")
+            time.sleep(0.5)
+            s.sendall(b"password\n")
+            time.sleep(0.5)
+            s.sendall(b"ls -la\n")
             
-        s.close()
+            try:
+                res = s.recv(1024)
+                if res:
+                    print(f"    [+] Telnet output: {res.decode('utf-8', errors='ignore').strip()}")
+            except socket.timeout:
+                pass
     except Exception as e:
         print(f"    [-] Telnet test failed: {e}")
 
 def test_nc(host, port=4444):
     print(f"[*] Testing NC / Raw Payload (Port {port})...")
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(3)
-        s.connect((host, port))
-        print("    [+] NC Connected successfully!")
-        s.sendall(b"id\n")
-        time.sleep(0.5)
-        
-        try:
-            res = s.recv(1024)
-            if res:
-                print(f"    [+] NC output: {res.decode('utf-8', errors='ignore').strip()}")
-        except socket.timeout:
-            pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(3)
+            s.connect((host, port))
+            print("    [+] NC Connected successfully!")
+            s.sendall(b"id\n")
+            time.sleep(0.5)
             
-        s.close()
+            try:
+                res = s.recv(1024)
+                if res:
+                    print(f"    [+] NC output: {res.decode('utf-8', errors='ignore').strip()}")
+            except socket.timeout:
+                pass
     except Exception as e:
         print(f"    [-] NC test failed: {e}")
 

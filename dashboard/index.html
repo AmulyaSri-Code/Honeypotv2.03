@@ -432,6 +432,16 @@
     return new Date(iso).toLocaleTimeString([], {hour12:false});
   }
 
+  function escapeHtml(unsafe) {
+      if (unsafe == null) return '';
+      return String(unsafe)
+           .replace(/&/g, "&amp;")
+           .replace(/</g, "&lt;")
+           .replace(/>/g, "&gt;")
+           .replace(/"/g, "&quot;")
+           .replace(/'/g, "&#039;");
+  }
+
   function getSeverity(category) {
     const cat = (category || '').toLowerCase();
     if(cat.includes('malware')) return { label: 'CRITICAL', cls: 'tag-critical' };
@@ -501,7 +511,7 @@
     let chartHtml = '';
     
     services.forEach(svc => {
-        let val = byService[svc] || Math.floor(Math.random() * 5); 
+        let val = byService[svc] !== undefined ? byService[svc] : 0; 
         let h = Math.max((val / maxSvc) * 120, 10); 
         chartHtml += `
             <div class="bar-col">
@@ -522,14 +532,18 @@
 
     tbody.innerHTML = cmds.map(c => {
         const sev = getSeverity(c.attack_category);
-        const eventName = c.attack_category ? `log.${c.service.toUpperCase()} / ${c.attack_category.split(' ')[0]}` : `log.${c.service.toUpperCase()} / connection`;
+        const safeSvc = escapeHtml(c.service || '').toUpperCase();
+        const safeAttack = escapeHtml(c.attack_category || '');
+        const eventName = c.attack_category ? `log.${safeSvc} / ${safeAttack.split(' ')[0]}` : `log.${safeSvc} / connection`;
+        const safeCmd = escapeHtml(c.command ? c.command.substring(0,35) + (c.command.length>35?'...':'') : 'N/A');
+        const safeIp = escapeHtml(c.ip || 'Unknown');
         
         return `
         <tr>
           <td style="color:var(--accent-cyan); font-weight:600;">${eventName}</td>
-          <td class="text-mono" style="color:var(--text-main)">${c.command ? c.command.substring(0,35) + (c.command.length>35?'...':'') : 'N/A'}</td>
+          <td class="text-mono" style="color:var(--text-main)">${safeCmd}</td>
           <td class="text-mono">
-            <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" class="ip-link">${c.ip || 'Unknown'}</a> <span style="color:var(--accent-amber); margin: 0 6px;">➔</span> 127.0.0.1
+            <a href="https://whatismyipaddress.com/ip/${encodeURIComponent(safeIp)}" target="_blank" class="ip-link">${safeIp}</a> <span style="color:var(--accent-amber); margin: 0 6px;">➔</span> 127.0.0.1
           </td>
           <td><span class="tag ${sev.cls}">${sev.label}</span></td>
           <td class="text-mono" style="color:var(--accent-indigo)">${formatTime(c.timestamp)}</td>
@@ -565,13 +579,18 @@
       connections.slice(0, 100).forEach(c => {
          if(c.lat && c.lon) {
              let marker = L.marker([c.lat, c.lon], { icon: pulseIcon }).addTo(telemetryMap);
+             const safeIp = escapeHtml(c.ip || '');
+             const safeSvc = escapeHtml(c.service || '').toUpperCase();
+             const safeCity = escapeHtml(c.city ? c.city+', ' : '');
+             const safeCountry = escapeHtml(c.country || 'Unknown');
+             
              marker.bindPopup(`
                 <div style="font-family:var(--font-body); padding:5px;">
                     <b style="color:var(--accent-rose); font-size:1.1rem; text-transform:uppercase;">Threat Detected</b><br>
                     <div style="margin-top:8px;">
-                      <b>Source:</b> <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" style="color:var(--accent-cyan)">${c.ip}</a><br>
-                      <b>Target:</b> <span style="color:var(--text-bright)">${c.service.toUpperCase()}</span><br>
-                      <b>Geo:</b> ${c.city ? c.city+', ' : ''}${c.country||'Unknown'}
+                      <b>Source:</b> <a href="https://whatismyipaddress.com/ip/${encodeURIComponent(safeIp)}" target="_blank" style="color:var(--accent-cyan)">${safeIp}</a><br>
+                      <b>Target:</b> <span style="color:var(--text-bright)">${safeSvc}</span><br>
+                      <b>Geo:</b> ${safeCity}${safeCountry}
                     </div>
                 </div>
              `);
@@ -592,15 +611,21 @@
         return;
       }
 
-      tbody.innerHTML = conns.slice(0,12).map(c => `
+      tbody.innerHTML = conns.slice(0,12).map(c => {
+        const safeSvc = escapeHtml(c.service || '').toUpperCase();
+        const safePort = escapeHtml(c.port || '');
+        const safeIp = escapeHtml(c.ip || '-');
+        const safeCountry = escapeHtml(c.country || 'Unknown');
+        const safeCity = escapeHtml(c.city ? ' - '+c.city : '');
+        return `
         <tr>
-          <td><span style="font-weight:600; color:var(--text-bright);">${(c.service||'').toUpperCase()}</span> <span class="text-mono" style="font-size:0.75rem;color:var(--text-main); margin-left:6px;">:${c.port}</span></td>
+          <td><span style="font-weight:600; color:var(--text-bright);">${safeSvc}</span> <span class="text-mono" style="font-size:0.75rem;color:var(--text-main); margin-left:6px;">:${safePort}</span></td>
           <td class="text-mono">
-            <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" class="ip-link">${c.ip || '-'}</a>
+            <a href="https://whatismyipaddress.com/ip/${encodeURIComponent(safeIp)}" target="_blank" class="ip-link">${safeIp}</a>
           </td>
-          <td style="color:var(--text-main); font-size:0.8rem;">${c.country||'Unknown'} ${c.city ? ' - '+c.city : ''}</td>
+          <td style="color:var(--text-main); font-size:0.8rem;">${safeCountry} ${safeCity}</td>
         </tr>
-      `).join('');
+      `}).join('');
   }
 
   async function loadServices() {
@@ -612,17 +637,19 @@
     const html = order.map(name => {
       if (!svcs[name]) return '';
       const data = svcs[name];
+      const safeName = escapeHtml(name || '').toUpperCase();
+      const safePort = escapeHtml(data.port || '');
       return `
         <div class="svc-item">
           <div class="svc-info">
             <div class="svc-name">
               <div class="svc-dot ${data.running ? 'active' : 'offline'}"></div>
-              ${name.toUpperCase()} <span class="text-mono" style="font-size:0.75rem; color:var(--text-main); font-weight:400;">(Port ${data.port})</span>
+              ${safeName} <span class="text-mono" style="font-size:0.75rem; color:var(--text-main); font-weight:400;">(Port ${safePort})</span>
             </div>
             <div class="svc-status">${data.running ? 'Node Active & Listening' : 'Node Offline'}</div>
           </div>
           <label class="switch">
-            <input type="checkbox" ${data.running ? 'checked' : ''} onchange="toggleService('${name}', this)">
+            <input type="checkbox" aria-label="Toggle ${safeName} service" aria-checked="${Boolean(data.running)}" aria-disabled="false" ${data.running ? 'checked' : ''} onchange="toggleService('${name}', this); this.setAttribute('aria-checked', this.checked);">
             <span class="slider"></span>
           </label>
         </div>
