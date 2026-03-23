@@ -2,336 +2,281 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DecoyMini // Risk Posture</title>
-  <!-- Keep standard fonts, DecoyMini uses simple sans-serif for UI with some tech accents -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <!-- Leaflet CSS for Map -->
+  <title>Honeypot // Threat Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
+    /* Base & Variables */
     :root {
-      --bg-base: #020b1f; /* Deep blue background from DecoyMini */
-      --panel-bg: rgba(7, 21, 51, 0.7); /* Translucent dark blue for panels */
-      --panel-border: #1d4085; 
-      --neon-cyan: #00f5ff; /* Primary accent: cyan top/corner borders */
-      --text-main: #d1d5db;
-      --text-highlight: #ffffff;
+      --bg: #0B0F19;
+      --panel-bg: rgba(17, 24, 39, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-main: #9ca3af;
+      --text-bright: #f3f4f6;
+      /* Accents */
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
       
-      /* Threat Colors */
-      --c-critical: #ff3b30;
-      --c-high: #ff9500;
-      --c-mid: #ffd60a;
-      --c-low: #34c759;
-      --c-info: #00f5ff;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Noto Sans', sans-serif;
-      background: var(--bg-base);
+      font-family: var(--font-body);
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(6, 182, 212, 0.1), transparent 40%);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
-      background-image: 
-        radial-gradient(circle at center, rgba(0,245,255,0.03) 0%, transparent 60%);
     }
 
     #debug-log {
-      position: fixed;
-      bottom: 10px; left: 10px;
-      width: 300px; max-height: 150px;
-      background: rgba(0,0,0,0.8);
-      color: #ff3b30;
-      font-family: monospace;
-      font-size: 10px;
-      z-index: 9999;
-      padding: 5px;
-      overflow-y: auto;
-      border: 1px solid var(--c-critical);
-      display: none; /* hidden by default */
+      position: fixed; bottom: 15px; left: 15px;
+      width: 350px; max-height: 200px;
+      background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(10px);
+      border: 1px solid var(--accent-rose); border-radius: 8px;
+      padding: 12px; font-family: var(--font-mono); font-size: 0.75rem; color: #fca5a5;
+      overflow-y: auto; z-index: 9999; display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     #debug-log.active { display: block; }
 
-    /* Top Navigation bar */
+    /* Header */
     header {
-      background: rgba(4, 12, 30, 0.9);
+      padding: 1.2rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--panel-border);
-      height: 60px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      z-index: 100;
-      box-shadow: inset 0 -2px 10px rgba(0,245,255,0.1);
+      position: relative; z-index: 100;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.3);
     }
-
+    .header-brand { display: flex; align-items: center; gap: 16px; }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+    }
+    .header-logo svg { width: 22px; height: 22px; fill: #fff; }
+    .header-title-wrapper { display: flex; flex-direction: column; }
     .header-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.8rem;
-      color: var(--text-highlight);
-      letter-spacing: 0.15em;
-      text-shadow: 0 0 10px rgba(0,245,255,0.5);
+      font-size: 1.2rem; font-weight: 700; color: var(--text-bright);
+      letter-spacing: 1px; text-transform: uppercase;
     }
+    .header-subtitle { font-size: 0.75rem; color: var(--accent-cyan); font-family: var(--font-mono); }
     
-    .header-time {
-      position: absolute;
-      right: 20px;
-      font-family: 'Orbitron', monospace;
-      font-size: 1rem;
-      color: var(--neon-cyan);
+    .header-right { display: flex; align-items: center; gap: 20px; }
+    .header-pulse {
+      display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.85rem;
+      color: var(--accent-emerald); background: rgba(16, 185, 129, 0.1);
+      padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2);
     }
+    .dot-pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent-emerald);
+      animation: pulsate 2s infinite;
+    }
+    @keyframes pulsate {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .header-time { font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-bright); }
 
-    /* Main Grid Layout replicating the DecoyMini Big Screen */
+    /* Layout Container */
     .container {
-      flex: 1;
-      padding: 1rem;
+      flex: 1; padding: 1.5rem;
       display: grid;
-      grid-template-columns: 350px 1fr 380px;
-      grid-template-rows: auto 1fr;
-      gap: 1rem;
-      height: calc(100vh - 60px);
+      grid-template-columns: 340px 1fr 380px;
+      grid-template-rows: auto 1fr; gap: 1.5rem;
+      height: calc(100vh - 85px);
     }
 
-    /* DecoyMini Style Panel Box */
+    /* Glass Panels */
     .panel {
       background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      position: relative;
-      display: flex;
-      flex-direction: column;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border); border-radius: 16px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
     }
-
-    /* Cyber Corners */
-    .panel::before, .panel::after {
-      content: '';
-      position: absolute;
-      width: 15px;
-      height: 15px;
-      border: 2px solid var(--neon-cyan);
-      pointer-events: none;
+    .panel:hover {
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.15);
     }
-    .panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-    .panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-    
-    .panel-inner-corner1, .panel-inner-corner2 {
-        position: absolute;
-        width: 15px;
-        height: 15px;
-        border: 2px solid var(--neon-cyan);
-        pointer-events: none;
-    }
-    .panel-inner-corner1 { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-    .panel-inner-corner2 { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-
-    /* DecoyMini Diagonal Decor blocks top right */
-    .panel-decor {
-      position: absolute;
-      top: 5px; right: 20px;
-      display: flex;
-      gap: 4px;
-    }
-    .panel-decor div {
-      width: 8px; height: 12px;
-      background: var(--neon-cyan);
-      transform: skew(-20deg);
-      opacity: 0.8;
-    }
-    .panel-decor div:nth-child(2) { opacity: 0.5; }
-    .panel-decor div:nth-child(3) { opacity: 0.2; }
 
     .panel-header {
-      padding: 0.8rem 1rem;
-      font-weight: 600;
-      color: var(--text-highlight);
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: linear-gradient(90deg, rgba(0,245,255,0.1) 0%, transparent 80%);
-      border-bottom: 1px solid rgba(0,245,255,0.2);
+      padding: 1.2rem 1.5rem; font-size: 1rem; font-weight: 600; color: var(--text-bright);
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--panel-border);
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
     }
+    .panel-header svg { width: 18px; height: 18px; color: var(--accent-cyan); stroke: var(--accent-cyan); fill: none;}
+    .panel-content { padding: 1.5rem; flex: 1; overflow-y: auto; }
     
-    .panel-header svg {
-        width: 18px; height: 18px;
-        fill: var(--neon-cyan);
-    }
-
-    .panel-content {
-      padding: 1rem;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    /* Custom scroll for panels */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
-    /* Left Column */
-    .col-left {
-      grid-column: 1; grid-row: 1 / 3;
-      display: grid;
-      grid-template-rows: repeat(3, 1fr);
-      gap: 1rem;
-    }
+    /* Grid Columns */
+    .col-left { grid-column: 1; grid-row: 1 / 3; display: grid; grid-template-rows: auto auto 1fr; gap: 1.5rem; }
+    .col-right { grid-column: 3; grid-row: 1 / 3; display: grid; grid-template-rows: 2.5fr 1fr; gap: 1.5rem; }
+    .col-center-map { grid-column: 2; grid-row: 1; border-radius: 16px; overflow: hidden; border: 1px solid var(--panel-border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); position: relative;}
+    .col-center-feed { grid-column: 2; grid-row: 2; }
 
-    /* Right Column */
-    .col-right {
-      grid-column: 3; grid-row: 1 / 3;
-      display: grid;
-      grid-template-rows: repeat(2, 1fr);
-      gap: 1rem;
+    /* Overview Stats */
+    .stat-list { display: flex; flex-direction: column; gap: 1rem; }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px;
+      padding: 1.2rem; display: flex; flex-direction: column; gap: 4px;
+      transition: all 0.3s ease; position: relative; overflow: hidden;
     }
+    .stat-card::before {
+      content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; border-radius: 4px 0 0 4px;
+      background: var(--accent-cyan);
+    }
+    .stat-card:nth-child(2)::before { background: var(--accent-indigo); }
+    .stat-card:nth-child(3)::before { background: var(--accent-rose); }
+    .stat-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(4px); }
+    .stat-lbl { font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-main); }
+    .stat-val { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700; color: var(--text-bright); line-height: 1.2; }
 
-    /* Center Middle (Map Area) */
-    .col-center-map {
-      grid-column: 2; grid-row: 1;
-      position: relative;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--panel-border);
-      box-shadow: 0 0 20px rgba(0,245,255,0.05);
-    }
-
-    #world-map {
-      width: 100%; height: 100%;
-      background: #020b1f; /* matches theme */
-    }
-
-    /* Target Node Pulse Animation on Map */
-    .map-pulse {
-      width: 12px; height: 12px;
-      background: var(--c-critical);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--c-critical), 0 0 20px var(--c-critical);
-      animation: pulseMap 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    
-    @keyframes pulseMap {
-      0% { transform: scale(0.5); opacity: 1; }
-      100% { transform: scale(3.5); opacity: 0; }
-    }
-
-    /* Center Bottom (Latest Events) */
-    .col-center-bottom {
-      grid-column: 2; grid-row: 2;
-    }
-
-    /* UI Components */
-    
-    /* DecoyMini Event List (Latest Events) */
-    .event-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .event-table tr {
-      border-bottom: 1px dashed rgba(255,255,255,0.1);
-    }
-    .event-table tr:hover {
-      background: rgba(0,245,255,0.05);
-    }
-    .event-table td {
-      padding: 0.6rem;
-      white-space: nowrap;
-    }
-    .flag { width: 20px; height: 14px; display: inline-block; vertical-align: middle; background: #555; margin-right: 5px; border-radius: 2px;}
-    
-    .event-type { color: var(--neon-cyan); font-weight: 600; }
-    .event-ip { font-family: 'Share Tech Mono', monospace; }
-    .event-arrow { color: var(--c-high); margin: 0 5px; }
-
-    .sev-tag {
-        padding: 2px 6px; border-radius: 2px;
-        font-weight: bold; font-size: 0.75rem; text-align: center;
-    }
-    .sev-critical { background: rgba(255,59,48,0.2); color: var(--c-critical); border: 1px solid var(--c-critical);}
-    .sev-high { background: rgba(255,149,0,0.2); color: var(--c-high); border: 1px solid var(--c-high);}
-    .sev-low { background: rgba(52,199,89,0.2); color: var(--c-low); border: 1px solid var(--c-low);}
-
-    /* Basic Donut wrapper (CSS visual) */
-    .donut-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
+    /* Donut Chart */
+    .donut-container { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 0.5rem; }
     .donut {
-      width: 140px; height: 140px;
-      border-radius: 50%;
-      background: conic-gradient(var(--c-critical) 0% 15%, var(--c-high) 15% 40%, var(--neon-cyan) 40% 70%, #34c759 70% 100%);
+      width: 150px; height: 150px; border-radius: 50%;
+      background: conic-gradient(var(--accent-rose) 0% 15%, var(--accent-amber) 15% 40%, var(--accent-cyan) 40% 70%, var(--accent-emerald) 70% 100%);
       display: flex; justify-content: center; align-items: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 25px rgba(0,0,0,0.3);
+      animation: spin-in 1s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
     }
+    @keyframes spin-in { 0% { transform: scale(0.8) rotate(-45deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
     .donut-inner {
-      width: 100px; height: 100px;
-      border-radius: 50%;
-      background: var(--panel-bg);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 110px; height: 110px; border-radius: 50%; background: var(--panel-bg);
+      backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2;
     }
-    .donut-num { font-size: 1.5rem; font-weight: 700; color: var(--text-highlight); font-family: 'Orbitron', monospace; }
+    .donut-num { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; color: var(--text-bright); line-height: 1; }
+    .donut-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-main); margin-top: 4px; }
+    
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: 0.8rem; }
+    .leg-item { display: flex; align-items: center; gap: 6px; font-weight: 500;}
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
 
-    .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.8rem; justify-content: center;}
-    .leg-item { display: flex; align-items: center; gap: 4px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-
-    /* Service Toggles list (Our honeypot control) */
-    .service-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    /* Service List */
+    .service-list { display: flex; flex-direction: column; gap: 0.8rem; }
     .svc-item {
       display: flex; justify-content: space-between; align-items: center;
-      background: rgba(0,0,0,0.2); padding: 0.6rem; border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.02); padding: 1rem; border: 1px solid var(--panel-border);
+      border-radius: 10px; transition: all 0.2s;
     }
-    .svc-name { font-weight: bold; color: var(--neon-cyan); letter-spacing: 1px; }
+    .svc-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+    .svc-info { display: flex; flex-direction: column; gap: 4px; }
+    .svc-name { font-weight: 600; color: var(--text-bright); display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;}
+    .svc-status { font-size: 0.75rem; color: var(--text-main); }
+    
+    .svc-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 2px var(--panel-bg); }
+    .svc-dot.active { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+    .svc-dot.offline { background: #4b5563; }
 
     /* Switch */
-    .switch { position: relative; display: inline-block; width: 36px; height: 18px; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #333; transition: .4s; border-radius: 18px; border: 1px solid #555;
+      background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 24px;
+      border: 1px solid var(--panel-border);
     }
     .slider:before {
-      position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px;
-      background-color: white; transition: .4s; border-radius: 50%;
+      position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background-color: var(--text-main); transition: .3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 50%;
     }
-    input:checked + .slider { background-color: rgba(0,245,255,0.3); border-color: var(--neon-cyan); }
-    input:checked + .slider:before { transform: translateX(18px); background-color: var(--neon-cyan); box-shadow: 0 0 5px var(--neon-cyan);}
-    input:disabled + .slider { opacity: 0.5; }
+    input:checked + .slider { background-color: rgba(16, 185, 129, 0.2); border-color: var(--accent-emerald); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald); }
+    input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
-    /* Stats Global Text */
-    .stat-hero {
-      display: flex; gap: 10px; align-items: baseline; justify-content: center; margin-bottom: 10px;
+    /* Map Space */
+    #world-map { width: 100%; height: 100%; background: #070A11; }
+    .map-pulse {
+      width: 14px; height: 14px; background: var(--accent-rose); border-radius: 50%;
+      box-shadow: 0 0 15px var(--accent-rose), 0 0 30px var(--accent-rose);
+      animation: map-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
     }
-    .stat-hero .val { font-size: 2.5rem; font-family: 'Orbitron', monospace; color: var(--text-highlight); }
-    .stat-hero .lbl { font-size: 0.8rem; color: var(--text-main); }
+    @keyframes map-ping { 75%, 100% { transform: scale(3.5); opacity: 0; } }
     
-    /* Vertical Bars for Connections over time */
-    .bar-chart {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      height: 160px; padding: 10px 0; margin-top: 10px;
-      border-bottom: 2px solid rgba(255,255,255,0.1);
+    .leaflet-popup-content-wrapper { background: rgba(17, 24, 39, 0.95); color: var(--text-bright); border: 1px solid var(--panel-border); border-radius: 8px; backdrop-filter: blur(10px); }
+    .leaflet-popup-tip { background: rgba(17, 24, 39, 0.95); border: 1px solid var(--panel-border); }
+    .leaflet-container a { color: var(--accent-cyan); }
+
+    /* Tables */
+    .event-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+    .event-table th {
+      padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--text-main);
+      text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--panel-border);
+      position: sticky; top: 0; background: var(--panel-bg); backdrop-filter: blur(10px); z-index: 10;
     }
-    .v-bar-col {
-      display: flex; flex-direction: column; align-items: center; width: 15%;
+    .event-table td { padding: 0.85rem 1rem; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s; white-space: nowrap; }
+    .event-table tr:hover td { background: rgba(255, 255, 255, 0.04); }
+    
+    .text-mono { font-family: var(--font-mono); }
+    .ip-link { color: var(--text-bright); text-decoration: none; border-bottom: 1px dashed var(--accent-indigo); transition: color 0.2s; }
+    .ip-link:hover { color: var(--accent-indigo); }
+    
+    .tag {
+      padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .v-bar-val { font-size: 0.7rem; margin-bottom: 5px; font-family: 'Share Tech Mono', monospace;}
-    .v-bar {
-      width: 12px; background: linear-gradient(180deg, var(--neon-cyan) 0%, rgba(0,245,255,0.2) 100%);
-      transition: height 0.5s; box-shadow: 0 -5px 10px rgba(0,245,255,0.2);
+    .tag-critical { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+    .tag-high { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-mid { background: rgba(99, 102, 241, 0.15); color: var(--accent-indigo); border: 1px solid rgba(99, 102, 241, 0.3); }
+    .tag-low { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    /* Bar Chart */
+    .bar-chart-container { display: flex; align-items: flex-end; justify-content: space-around; height: 180px; padding-top: 1rem; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 15%; transition: transform 0.2s; position: relative; }
+    .bar-col:hover { transform: translateY(-4px); }
+    .bar-val { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--text-bright); }
+    .bar {
+      width: 100%; border-radius: 4px 4px 0 0; background: linear-gradient(to top, rgba(59, 130, 246, 0.2), var(--accent-cyan));
+      transition: height 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); min-height: 4px;
+      box-shadow: 0 -4px 15px rgba(6, 182, 212, 0.3);
     }
-    .v-bar-lbl { font-size: 0.65rem; margin-top: 8px; color: var(--text-main); text-align: center; overflow: hidden; white-space: nowrap; max-width:100%; text-overflow: ellipsis;}
+    .bar-lbl { font-size: 0.75rem; font-weight: 600; color: var(--text-main); text-transform: uppercase; margin-top: 5px; }
   </style>
 </head>
 <body>
-  
+
   <header>
-    <div class="header-title">RISK POSTURE (HONEYPOT NEXUS)</div>
-    <div class="header-time" id="clock">0000-00-00 00:00:00</div>
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="header-title-wrapper">
+        <div class="header-title">Honeypot</div>
+        <div class="header-subtitle">Advanced Honeypot Telemetry</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-pulse">
+        <div class="dot-pulse"></div>
+        SYSTEM ACTIVE
+      </div>
+      <div class="header-time" id="clock">0000-00-00 00:00:00</div>
+    </div>
   </header>
 
   <div class="container">
@@ -340,86 +285,78 @@
     <div class="col-left">
       <!-- Panel 1: Overview Stats -->
       <div class="panel">
-        <div class="panel-inner-corner1"></div>
-        <div class="panel-inner-corner2"></div>
-        <div class="panel-decor"><div></div><div></div><div></div></div>
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          Overview
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          System Overview
         </div>
-        <div class="panel-content" style="display:flex; flex-direction:column; justify-content:center;">
-          <div class="stat-hero">
-            <span class="val" id="stat-conn">0</span>
-            <span class="lbl">Connections</span>
-          </div>
-          <div class="stat-hero">
-            <span class="val" id="stat-cmds">0</span>
-            <span class="lbl">Total Events</span>
-          </div>
-          <div class="stat-hero">
-            <span class="val" id="stat-ips">0</span>
-            <span class="lbl">Unique Attackers</span>
+        <div class="panel-content">
+          <div class="stat-list">
+            <div class="stat-card">
+              <span class="stat-lbl">Active Connections</span>
+              <span class="stat-val" id="stat-conn">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-lbl">Total Events Captured</span>
+              <span class="stat-val" id="stat-cmds">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-lbl">Unique Attackers</span>
+              <span class="stat-val" id="stat-ips">0</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Panel 2: Attack Classification Donut -->
+      <!-- Panel 2: Threat Classification -->
       <div class="panel">
-        <div class="panel-inner-corner1"></div>
-        <div class="panel-inner-corner2"></div>
-        <div class="panel-decor"><div></div><div></div><div></div></div>
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10V2z"/></svg>
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
           Threat Classification
         </div>
         <div class="panel-content donut-container" id="donut-target">
-          <!-- Loaded by JS -->
           <div class="donut">
-            <div class="donut-inner"><span class="donut-num">0</span></div>
+            <div class="donut-inner">
+              <span class="donut-num">0</span>
+              <span class="donut-lbl">Events</span>
+            </div>
           </div>
           <div class="legend">
-            <div class="leg-item"><div class="dot" style="background:var(--neon-cyan)"></div>Recon</div>
-            <div class="leg-item"><div class="dot" style="background:var(--c-high)"></div>Brute Force</div>
-            <div class="leg-item"><div class="dot" style="background:var(--c-critical)"></div>Malware</div>
+            <div class="leg-item"><div class="dot" style="background:var(--accent-cyan)"></div>Recon</div>
+            <div class="leg-item"><div class="dot" style="background:var(--accent-amber)"></div>Brute Force</div>
+            <div class="leg-item"><div class="dot" style="background:var(--accent-rose)"></div>Malware</div>
           </div>
         </div>
       </div>
 
       <!-- Panel 3: Services Control -->
-      <div class="panel">
-        <div class="panel-inner-corner1"></div>
-        <div class="panel-inner-corner2"></div>
-        <div class="panel-decor"><div></div><div></div><div></div></div>
+      <div class="panel" style="flex:1;">
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
-          Honeypot Matrix
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          Node Control Matrix
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 1.2rem;">
           <div class="service-list" id="services-list">
-             <div style="text-align:center;color:#666;font-size:0.8rem;padding:2rem;">Loading Nodes...</div>
+             <div style="text-align:center;color:var(--text-main);font-size:0.85rem;padding:2rem;">Initializing Node Controllers...</div>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- CENTER MAP LAYER -->
-    <div class="col-center-map">
+    <!-- CENTER MAP -->
+    <div class="col-center-map panel">
       <div id="world-map"></div>
     </div>
 
-    <!-- CENTER BOTTOM LATEST EVENTS -->
-    <div class="col-center-bottom panel">
-      <div class="panel-inner-corner1"></div>
-      <div class="panel-inner-corner2"></div>
-      <div class="panel-decor"><div></div><div></div><div></div></div>
+    <!-- CENTER FEED -->
+    <div class="col-center-feed panel">
       <div class="panel-header">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-        Latest Events
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Live Activity Feed
       </div>
       <div class="panel-content" style="padding: 0;">
         <table class="event-table">
           <tbody id="feed-tbody">
-            <tr><td colspan="5" style="text-align:center;padding:2rem;">Waiting for log streams...</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-main);">Awaiting telemetry streams...</td></tr>
           </tbody>
         </table>
       </div>
@@ -427,49 +364,42 @@
 
     <!-- RIGHT COLUMN -->
     <div class="col-right">
-      <!-- Target Analysis (Connections list) -->
+      <!-- Target Nodes (Connections) -->
       <div class="panel">
-        <div class="panel-inner-corner1"></div>
-        <div class="panel-inner-corner2"></div>
-        <div class="panel-decor"><div></div><div></div><div></div></div>
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Target Nodes
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+          Active Threats
         </div>
         <div class="panel-content" style="padding:0;">
-          <table class="event-table" style="text-align:left;">
+          <table class="event-table">
             <thead>
-              <tr style="color:var(--neon-cyan); font-size:0.75rem; border-bottom: 2px solid rgba(0,245,255,0.2);">
-                <th>Service (Port)</th>
-                <th>Target IP</th>
-                <th>Geo</th>
+              <tr>
+                <th>Service/Port</th>
+                <th>Source IP</th>
+                <th>Origin</th>
               </tr>
             </thead>
             <tbody id="conns-tbody">
-              <tr><td colspan="3" style="text-align:center;padding:1rem;">Scanning...</td></tr>
+              <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-main);">Scanning nodes...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Historical Bar Chart -->
+      <!-- Attack Volume Chart -->
       <div class="panel">
-        <div class="panel-inner-corner1"></div>
-        <div class="panel-inner-corner2"></div>
-        <div class="panel-decor"><div></div><div></div><div></div></div>
         <div class="panel-header">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          Attack Volume
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          Traffic Volume
         </div>
-        <div class="panel-content">
-          <div class="bar-chart" id="bar-chart">
-             <!-- Populated dynamically -->
-             <div style="font-size:0.8rem;text-align:center;width:100%;color:#666;">Waiting...</div>
+        <div class="panel-content" style="padding: 0 1rem;">
+          <div class="bar-chart-container" id="bar-chart">
+             <div style="font-size:0.85rem;text-align:center;width:100%;color:var(--text-main); align-self:center;">Aggregating Data...</div>
           </div>
         </div>
       </div>
-
     </div>
+
   </div>
 
   <div id="debug-log"></div>
@@ -477,7 +407,6 @@
 <script>
   const API = '';
   
-  // Global error logger for troubleshooting
   window.onerror = function(msg, url, line) {
     const log = document.getElementById('debug-log');
     if (log) {
@@ -486,7 +415,6 @@
     }
   };
 
-  // Utility JSON fetcher
   async function fetchJSON(path, options = {}) {
     try {
       const res = await fetch(API + path, options);
@@ -494,28 +422,24 @@
     } catch (err) { return null; }
   }
 
-  // Live clock
   setInterval(() => {
     const d = new Date();
     document.getElementById('clock').textContent = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0') + " " + d.toLocaleTimeString([], {hour12:false});
   }, 1000);
 
-  // Time format
   function formatTime(iso) {
     if (!iso) return '-';
-    // Return HH:MM:SS format
     return new Date(iso).toLocaleTimeString([], {hour12:false});
   }
 
   function getSeverity(category) {
     const cat = (category || '').toLowerCase();
-    if(cat.includes('malware')) return { label: 'High', cls: 'sev-critical' };
-    if(cat.includes('brute') || cat.includes('priv')) return { label: 'Mid', cls: 'sev-high' };
-    if(cat.includes('recon')) return { label: 'Low', cls: 'sev-low' };
-    return { label: 'Safe', cls: 'sev-low' }; 
+    if(cat.includes('malware')) return { label: 'CRITICAL', cls: 'tag-critical' };
+    if(cat.includes('brute') || cat.includes('priv')) return { label: 'HIGH', cls: 'tag-high' };
+    if(cat.includes('recon')) return { label: 'LOW', cls: 'tag-low' };
+    return { label: 'SAFE', cls: 'tag-low' }; 
   }
 
-  /* Renders the top-level stats and calculates the Donut segments */
   async function loadStats() {
     const s = await fetchJSON('/api/stats');
     if (!s) return;
@@ -524,29 +448,26 @@
     document.getElementById('stat-cmds').textContent = s.total_commands.toLocaleString();
     document.getElementById('stat-ips').textContent = s.unique_ips.toLocaleString();
 
-    // Render Donut (Conic Gradient computation)
     const byAttack = s.by_attack || {};
     const total = Object.values(byAttack).reduce((a,b)=>a+b, 0) || 1;
     
-    // Mapped colors per category
     const m = {
-      'Reconnaissance': 'var(--neon-cyan)',
-      'Brute Force': 'var(--c-high)',
-      'Privilege Escalation': 'var(--c-mid)',
-      'Malware Attempt': 'var(--c-critical)',
-      'Benign': 'var(--c-low)'
+      'Reconnaissance': 'var(--accent-cyan)',
+      'Brute Force': 'var(--accent-amber)',
+      'Privilege Escalation': 'var(--accent-indigo)',
+      'Malware Attempt': 'var(--accent-rose)',
+      'Benign': 'var(--accent-emerald)'
     };
 
     let gradientVals = [];
     let currentPct = 0;
     let legendHtml = '';
     
-    // Generate ordered segments
     for(const key in m) {
         let count = byAttack[key] || 0;
         if(count > 0 || Object.keys(byAttack).length === 0) {
             let pct = (count / total) * 100;
-            if(Object.keys(byAttack).length === 0) pct = 100; // default solid if no data
+            if(Object.keys(byAttack).length === 0) pct = 100;
             
             gradientVals.push(`${m[key]} ${currentPct}% ${currentPct + pct}%`);
             currentPct += pct;
@@ -558,62 +479,60 @@
     }
     
     if(legendHtml === '') {
-        legendHtml = `<div class="leg-item"><div class="dot" style="background:#333"></div>No Data</div>`;
-        gradientVals = ['#222 0% 100%'];
+        legendHtml = `<div class="leg-item"><div class="dot" style="background:#4b5563"></div>No Data</div>`;
+        gradientVals = ['#1f2937 0% 100%'];
     }
 
     const donutHtml = `
       <div class="donut" style="background: conic-gradient(${gradientVals.join(', ')});">
-        <div class="donut-inner"><span class="donut-num">${total > 1 ? total : 0}</span></div>
+        <div class="donut-inner">
+          <span class="donut-num">${total > 1 ? total : 0}</span>
+          <span class="donut-lbl">Events</span>
+        </div>
       </div>
       <div class="legend">${legendHtml}</div>
     `;
     
     document.getElementById('donut-target').innerHTML = donutHtml;
 
-
-    // Render volume Bar Chart (fake distribution of by_service for volume showcase)
     const byService = s.by_service || {};
     const maxSvc = Math.max(...Object.values(byService), 1);
-    
-    // Render 6 bars for services
     const services = ['ssh','ftp','http','telnet','nc'];
     let chartHtml = '';
+    
     services.forEach(svc => {
-        let val = byService[svc] || Math.floor(Math.random() * 5); // Add jitter for visual appeal if 0
-        let h = Math.max((val / maxSvc) * 120, 10); // px height
+        let val = byService[svc] || Math.floor(Math.random() * 5); 
+        let h = Math.max((val / maxSvc) * 120, 10); 
         chartHtml += `
-            <div class="v-bar-col">
-              <span class="v-bar-val">${val}</span>
-              <div class="v-bar" style="height:${h}px"></div>
-              <span class="v-bar-lbl">${svc.toUpperCase()}</span>
+            <div class="bar-col">
+              <span class="bar-val">${val}</span>
+              <div class="bar" style="height:${h}px"></div>
+              <span class="bar-lbl">${svc}</span>
             </div>
         `;
     });
     document.getElementById('bar-chart').innerHTML = chartHtml;
   }
 
-  /* Renders the bottom Latest Events mimicking DecoyMini feed */
   async function loadFeed() {
     const cmds = await fetchJSON('/api/commands?limit=15');
     if (!cmds) return;
-
     const tbody = document.getElementById('feed-tbody');
     if(cmds.length === 0) return;
 
     tbody.innerHTML = cmds.map(c => {
         const sev = getSeverity(c.attack_category);
-        const eventName = c.attack_category ? `log.${c.service.toUpperCase()} captured ${c.attack_category.split(' ')[0]}` : `log.${c.service.toUpperCase()} captured connection`;
+        const eventName = c.attack_category ? `log.${c.service.toUpperCase()} / ${c.attack_category.split(' ')[0]}` : `log.${c.service.toUpperCase()} / connection`;
         
         return `
         <tr>
-          <td class="event-type">${eventName}</td>
-          <td style="color:var(--text-dim)">${c.command ? c.command.substring(0,30) + (c.command.length>30?'...':'') : '-'}</td>
-          <td class="event-ip">
-            <span class="flag"></span><a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" style="color:inherit; text-decoration:none;">${c.ip || '-'}</a> <span class="event-arrow">➔</span> 127.0.0.1
+          <td style="color:var(--accent-cyan); font-weight:600;">${eventName}</td>
+          <td class="text-mono" style="color:var(--text-main)">${c.command ? c.command.substring(0,35) + (c.command.length>35?'...':'') : 'N/A'}</td>
+          <td class="text-mono">
+            <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" class="ip-link">${c.ip || 'Unknown'}</a> <span style="color:var(--accent-amber); margin: 0 6px;">➔</span> 127.0.0.1
           </td>
-          <td><span class="sev-tag ${sev.cls}">${sev.label}</span></td>
-          <td style="color:var(--neon-cyan)">${formatTime(c.timestamp)}</td>
+          <td><span class="tag ${sev.cls}">${sev.label}</span></td>
+          <td class="text-mono" style="color:var(--accent-indigo)">${formatTime(c.timestamp)}</td>
         </tr>
       `}).join('');
   }
@@ -623,50 +542,37 @@
   
   function initMap() {
     if (typeof L === 'undefined') {
-        console.error("Leaflet not loaded. Map will be disabled.");
-        document.getElementById('world-map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Map Services Unavailable (Check Connection)</div>';
+        document.getElementById('world-map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-main);">Map Services Offline</div>';
         return;
     }
     try {
-        telemetryMap = L.map('world-map', {
-            center: [20, 0],
-            zoom: 2,
-            zoomControl: false,
-            attributionControl: false
-        });
-        // Dark Theme map tile layer (CartoDB Dark Matter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          subdomains: 'abcd',
-          maxZoom: 19
-        }).addTo(telemetryMap);
+        telemetryMap = L.map('world-map', { center: [20, 0], zoom: 2, zoomControl: false, attributionControl: false });
+        // Dark Theme Map
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(telemetryMap);
     } catch (e) {
-        console.error("Error initializing map:", e);
+        console.error("Map init error:", e);
     }
   }
 
   function updateMapNodes(connections) {
       if(!telemetryMap || typeof L === 'undefined') return;
-      // Clear old markers
-      activeMapMarkers.forEach(m => {
-          try { telemetryMap.removeLayer(m); } catch(e) {}
-      });
+      activeMapMarkers.forEach(m => { try { telemetryMap.removeLayer(m); } catch(e) {} });
       activeMapMarkers = [];
       
       const pulseHtml = `<div class="map-pulse"></div>`;
-      const pulseIcon = L.divIcon({ html: pulseHtml, className: '', iconSize: [12,12], iconAnchor: [6,6] });
+      const pulseIcon = L.divIcon({ html: pulseHtml, className: '', iconSize: [14,14], iconAnchor: [7,7] });
 
-      const maxPlot = 100; // avoid cluttering 
-      connections.slice(0, maxPlot).forEach(c => {
+      connections.slice(0, 100).forEach(c => {
          if(c.lat && c.lon) {
              let marker = L.marker([c.lat, c.lon], { icon: pulseIcon }).addTo(telemetryMap);
              marker.bindPopup(`
-                <div style="color:#000; font-family:sans-serif;">
-                    <b style="color:var(--c-critical)">ATTACK DETECTED</b><br>
-                    <b>Source IP:</b> <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank">${c.ip}</a><br>
-                    <b>Target Service:</b> ${c.service.toUpperCase()}<br>
-                    <b>Origin:</b> ${c.city ? c.city+', ' : ''}${c.country||'Unknown'}<br>
-                    <hr style="margin:5px 0; border:0; border-top:1px solid #eee;">
-                    <small>Tracing completed via Geoloc API</small>
+                <div style="font-family:var(--font-body); padding:5px;">
+                    <b style="color:var(--accent-rose); font-size:1.1rem; text-transform:uppercase;">Threat Detected</b><br>
+                    <div style="margin-top:8px;">
+                      <b>Source:</b> <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" style="color:var(--accent-cyan)">${c.ip}</a><br>
+                      <b>Target:</b> <span style="color:var(--text-bright)">${c.service.toUpperCase()}</span><br>
+                      <b>Geo:</b> ${c.city ? c.city+', ' : ''}${c.country||'Unknown'}
+                    </div>
                 </div>
              `);
              activeMapMarkers.push(marker);
@@ -674,31 +580,29 @@
       });
   }
 
-  /* Renders Top right Connections targeting nodes */
   async function loadConnections() {
       const conns = await fetchJSON('/api/connections?limit=100');
       if (!conns) return;
 
       const tbody = document.getElementById('conns-tbody');
-      
-      updateMapNodes(conns); // Sync with map!
+      updateMapNodes(conns);
 
       if(conns.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1rem;">Scanning...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--text-main);">Scanning nodes...</td></tr>';
         return;
       }
 
-      // Only slice 10 for the table view
-      tbody.innerHTML = conns.slice(0,10).map(c => `
+      tbody.innerHTML = conns.slice(0,12).map(c => `
         <tr>
-          <td style="font-weight:bold; color:var(--text-main);">${(c.service||'').toUpperCase()} <span style="font-size:0.7rem;color:var(--text-dim);">(${c.port})</span></td>
-          <td class="event-ip" style="color:var(--text-highlight);">
-            <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" style="color:inherit; text-decoration:none; border-bottom: 1px dashed var(--neon-cyan)">${c.ip || '-'}</a>
+          <td><span style="font-weight:600; color:var(--text-bright);">${(c.service||'').toUpperCase()}</span> <span class="text-mono" style="font-size:0.75rem;color:var(--text-main); margin-left:6px;">:${c.port}</span></td>
+          <td class="text-mono">
+            <a href="https://whatismyipaddress.com/ip/${c.ip}" target="_blank" class="ip-link">${c.ip || '-'}</a>
           </td>
-          <td style="color:var(--text-dim); font-size:0.7rem;">${c.country||'Unknown'} ${c.city ? '- '+c.city : ''}</td>
+          <td style="color:var(--text-main); font-size:0.8rem;">${c.country||'Unknown'} ${c.city ? ' - '+c.city : ''}</td>
         </tr>
       `).join('');
   }
+
   async function loadServices() {
     const svcs = await fetchJSON('/api/services');
     const list = document.getElementById('services-list');
@@ -710,9 +614,12 @@
       const data = svcs[name];
       return `
         <div class="svc-item">
-          <div>
-            <div class="svc-name">${name.toUpperCase()} (Port ${data.port})</div>
-            <div style="font-size:0.75rem; color:var(--text-dim);">Status: ${data.running ? 'Active & Listening' : 'Offline'}</div>
+          <div class="svc-info">
+            <div class="svc-name">
+              <div class="svc-dot ${data.running ? 'active' : 'offline'}"></div>
+              ${name.toUpperCase()} <span class="text-mono" style="font-size:0.75rem; color:var(--text-main); font-weight:400;">(Port ${data.port})</span>
+            </div>
+            <div class="svc-status">${data.running ? 'Node Active & Listening' : 'Node Offline'}</div>
           </div>
           <label class="switch">
             <input type="checkbox" ${data.running ? 'checked' : ''} onchange="toggleService('${name}', this)">
@@ -722,7 +629,6 @@
       `;
     }).join('');
     
-    // Only repaint if not actively focusing a toggle
     if(document.activeElement?.type !== 'checkbox') {
         list.innerHTML = html;
     }
@@ -740,7 +646,6 @@
       loadServices();
   }
 
-  // Polling logic
   initMap();
   
   async function refreshAll() {
@@ -750,10 +655,7 @@
       if(document.activeElement?.type !== 'checkbox') await loadServices();
   }
 
-  // Initial load
   refreshAll();
-  
-  // Refresh interval
   setInterval(refreshAll, 4000);
 
 </script>
