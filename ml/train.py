@@ -1,5 +1,5 @@
 """
-Train attack classifier: TF-IDF + Logistic Regression.
+Train attack classifier: TF-IDF (char w/b only) + Random Forest.
 Creates model.pkl and vectorizer.pkl for real-time prediction.
 """
 import os
@@ -9,7 +9,7 @@ import re
 try:
     import pandas as pd
     from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import classification_report, accuracy_score
 except ImportError as e:
@@ -27,10 +27,12 @@ def preprocess(text):
         text = str(text)
     text = text.lower().strip()
     text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'[^\w\s\-/\.:;|&$`]', '', text)
+    # Keeping more characters relevant to shell payload execution
+    text = re.sub(r'[^\w\s\-/\.:;|&$`<>+*]', '', text)
     return text
 
 def main():
+    print("[*] Loading and expanding dataset...")
     df = pd.read_csv(DATASET)
     df = df.dropna(subset=["command", "attack_category"])
     df["command_clean"] = df["command"].apply(preprocess)
@@ -39,31 +41,38 @@ def main():
     X = df["command_clean"]
     y = df["attack_category"]
 
+    print("[*] Training TF-IDF Vectorizer...")
+    # Leveraging char_wb (character ngrams inside word boundaries) to catch obfuscated strings
     vectorizer = TfidfVectorizer(
-        max_features=300,
-        ngram_range=(1, 2),
+        max_features=500,
+        ngram_range=(1, 4),
         min_df=1,
         sublinear_tf=True,
-        analyzer="word",
-        token_pattern=r"\b[\w/\.\-]+\b",
+        analyzer="char_wb"
     )
     X_vec = vectorizer.fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.15, random_state=42, stratify=y)
 
-    model = LogisticRegression(max_iter=500, C=1.0, solver="lbfgs", random_state=42)
+    print("[*] Training Random Forest Classifier...")
+    model = RandomForestClassifier(n_estimators=100, max_depth=None, random_state=42, n_jobs=-1)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
-    print("\nClassification Report:")
+    print("\n===============================")
+    print(f"Accuracy: {accuracy_score(y_test, y_pred) * 100:.2f}%")
+    print("===============================\n")
+    print("Classification Report:")
     print(classification_report(y_test, y_pred, zero_division=0))
 
+    # Save models
     with open(MODEL_PATH, "wb") as f:
         pickle.dump(model, f)
     with open(VECTORIZER_PATH, "wb") as f:
         pickle.dump(vectorizer, f)
-    print(f"\nSaved {MODEL_PATH} and {VECTORIZER_PATH}")
+    print(f"\n[+] Successfully saved {MODEL_PATH}")
+    print(f"[+] Successfully saved {VECTORIZER_PATH}")
+    print("[+] Model is tied to your current environment package versions. May trigger InconsistentVersionWarning if loaded on different sklearn versions.")
 
 if __name__ == "__main__":
     main()

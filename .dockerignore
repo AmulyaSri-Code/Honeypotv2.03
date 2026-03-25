@@ -1,0 +1,7 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+honeypot.db
+honeypot.log
+honeypot_out.log

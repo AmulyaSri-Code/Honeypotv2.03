@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  honeypot:
+    build: .
+    container_name: honeypot_nexus
+    ports:
+      - "2222:2222"   # SSH
+      - "2121:2121"   # FTP
+      - "8080:8080"   # HTTP
+      - "2323:2323"   # Telnet
+      - "4444:4444"   # NC
+      - "5050:5050"   # Dashboard API
+    volumes:
+      - ./data:/app/data   # We'll map a data directory for the db and logs if possible, but let's just map the specific files if they exist, or the whole dir natively. To avoid messing up the host folder, let's map a named volume or local `./data` if we want persistence. But since SQLite is in the root:
+      # We just map honeypot.db to persist the DB across container runs
+      - ./honeypot.db:/app/honeypot.db
+      - ./honeypot.log:/app/honeypot.log
+      - ./honeypot_out.log:/app/honeypot_out.log
+    restart: unless-stopped

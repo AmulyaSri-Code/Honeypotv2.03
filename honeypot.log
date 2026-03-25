@@ -378,3 +378,153 @@ exit
 2026-03-09 15:36:52,935 - Service http manually started via API.
 2026-03-09 15:36:54,335 - SSH honeypot on port 2222
 2026-03-09 15:36:54,337 - Service ssh manually started via API.
+2026-03-09 15:42:54,094 - SSH honeypot on port 2222
+2026-03-09 15:42:54,094 - FTP honeypot on port 2121
+2026-03-09 15:42:54,094 - HTTP honeypot on port 8080
+2026-03-09 15:42:54,094 - Telnet honeypot on port 2323
+2026-03-09 15:42:54,094 - NC honeypot on port 4444
+2026-03-09 15:46:33,564 - SSH honeypot on port 2222
+2026-03-09 15:46:33,567 - FTP honeypot on port 2121
+2026-03-09 15:46:33,567 - HTTP honeypot on port 8080
+2026-03-09 15:46:33,567 - Telnet honeypot on port 2323
+2026-03-09 15:46:33,567 - NC honeypot on port 4444
+2026-03-09 15:49:14,532 - SSH honeypot on port 2222
+2026-03-09 15:49:14,532 - FTP honeypot on port 2121
+2026-03-09 15:49:14,532 - HTTP honeypot on port 8080
+2026-03-09 15:49:14,532 - Telnet honeypot on port 2323
+2026-03-09 15:49:14,532 - NC honeypot on port 4444
+2026-03-20 10:03:46,029 - SSH honeypot on port 2222
+2026-03-20 10:03:46,030 - FTP honeypot on port 2121
+2026-03-20 10:03:46,030 - HTTP honeypot on port 8080
+2026-03-20 10:03:46,030 - Telnet honeypot on port 2323
+2026-03-20 10:03:46,030 - NC honeypot on port 4444
+2026-03-20 10:06:36,723 - [CONN] ssh(2222) 127.0.0.1: connected - Local/Local
+2026-03-20 10:06:36,724 - [ERR] ssh: 'Transport' object has no attribute 'set_gss_api'
+2026-03-20 10:06:39,739 - [CONN] ftp(2121) 127.0.0.1: connected - Local
+2026-03-20 10:06:42,976 - [CONN] http(8080) 127.0.0.1: connected - Local
+2026-03-20 10:06:46,834 - [CONN] telnet(2323) 127.0.0.1: connected - Local
+2026-03-20 10:06:50,017 - [CONN] nc(4444) 127.0.0.1: connected - Local
+2026-03-20 10:07:44,897 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-20 10:07:44,898 - [CMD] telnet(2323) 127.0.0.1: root [ATTACK: Privilege Escalation]
+2026-03-20 10:07:44,899 - [CMD] ftp(2121) 127.0.0.1: USER anonymous [ATTACK: Reconnaissance]
+2026-03-20 10:07:44,899 - [CMD] http(8080) 127.0.0.1: GET /wp-admin HTTP/1.1 [ATTACK: Reconnaissance]
+2026-03-20 10:07:44,906 - [CMD] telnet(2323) 127.0.0.1: password
+ls -la [ATTACK: Reconnaissance]
+2026-03-20 10:10:22,956 - [CONN] ssh(2222) 127.0.0.1: connected - Local/Local
+2026-03-20 10:10:22,956 - [ERR] ssh: 'Transport' object has no attribute 'set_gss_api'
+2026-03-20 10:10:25,968 - [CONN] ftp(2121) 127.0.0.1: connected - Local
+2026-03-20 10:10:25,973 - [CMD] ftp(2121) 127.0.0.1: USER anonymous [ATTACK: Reconnaissance]
+2026-03-20 10:10:25,977 - [CMD] ftp(2121) 127.0.0.1: PASS test@test.com [ATTACK: Brute Force]
+2026-03-20 10:10:25,979 - [CMD] ftp(2121) 127.0.0.1: TYPE A [ATTACK: Reconnaissance]
+2026-03-20 10:10:25,982 - [CMD] ftp(2121) 127.0.0.1: QUIT [ATTACK: Reconnaissance]
+2026-03-20 10:10:25,992 - [CONN] http(8080) 127.0.0.1: connected - Local
+2026-03-20 10:10:25,993 - [CMD] http(8080) 127.0.0.1: GET /wp-admin HTTP/1.1 [ATTACK: Reconnaissance]
+2026-03-20 10:10:25,996 - [CONN] telnet(2323) 127.0.0.1: connected - Local
+2026-03-20 10:10:25,996 - [CMD] telnet(2323) 127.0.0.1: root [ATTACK: Privilege Escalation]
+2026-03-20 10:10:26,507 - [CMD] telnet(2323) 127.0.0.1: password [ATTACK: Reconnaissance]
+2026-03-20 10:10:27,009 - [CMD] telnet(2323) 127.0.0.1: ls -la [ATTACK: Reconnaissance]
+2026-03-20 10:10:27,022 - [CONN] nc(4444) 127.0.0.1: connected - Local
+2026-03-20 10:10:27,024 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-20 10:55:56,908 - SSH honeypot on port 2222
+2026-03-20 10:55:56,909 - FTP honeypot on port 2121
+2026-03-20 10:55:56,909 - HTTP honeypot on port 8080
+2026-03-20 10:55:56,909 - Telnet honeypot on port 2323
+2026-03-20 10:55:56,909 - NC honeypot on port 4444
+2026-03-20 11:04:30,625 - [CONN] ssh(2222) 127.0.0.1: connected - Local/Local
+2026-03-20 11:04:30,626 - [ERR] ssh: 'Transport' object has no attribute 'set_gss_api'
+2026-03-20 11:04:33,729 - [CONN] ftp(2121) 127.0.0.1: connected - Local
+2026-03-20 11:04:34,890 - [CMD] ftp(2121) 127.0.0.1: USER anonymous [ATTACK: Reconnaissance]
+2026-03-20 11:04:34,891 - [CMD] ftp(2121) 127.0.0.1: PASS test@test.com [ATTACK: Brute Force]
+2026-03-20 11:04:34,892 - [CMD] ftp(2121) 127.0.0.1: TYPE A [ATTACK: Reconnaissance]
+2026-03-20 11:04:34,893 - [CMD] ftp(2121) 127.0.0.1: QUIT [ATTACK: Reconnaissance]
+2026-03-20 11:04:34,898 - [CONN] http(8080) 127.0.0.1: connected - Local
+2026-03-20 11:04:34,899 - [CMD] http(8080) 127.0.0.1: GET /wp-admin HTTP/1.1 [ATTACK: Reconnaissance]
+2026-03-20 11:04:34,900 - [CONN] telnet(2323) 127.0.0.1: connected - Local
+2026-03-20 11:04:34,901 - [CMD] telnet(2323) 127.0.0.1: root [ATTACK: Privilege Escalation]
+2026-03-20 11:04:35,409 - [CMD] telnet(2323) 127.0.0.1: password [ATTACK: Reconnaissance]
+2026-03-20 11:04:35,912 - [CMD] telnet(2323) 127.0.0.1: ls -la [ATTACK: Reconnaissance]
+2026-03-20 11:04:35,926 - [CONN] nc(4444) 127.0.0.1: connected - Local
+2026-03-20 11:04:35,928 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-20 11:27:09,537 - SSH honeypot on port 2222
+2026-03-20 11:27:09,538 - FTP honeypot on port 2121
+2026-03-20 11:27:09,538 - HTTP honeypot on port 8080
+2026-03-20 11:27:09,538 - Telnet honeypot on port 2323
+2026-03-20 11:27:09,538 - NC honeypot on port 4444
+2026-03-23 21:03:26,697 - SSH honeypot on port 2222
+2026-03-23 21:03:26,697 - FTP honeypot on port 2121
+2026-03-23 21:03:26,697 - HTTP honeypot on port 8080
+2026-03-23 21:03:26,697 - Telnet honeypot on port 2323
+2026-03-23 21:03:26,697 - NC honeypot on port 4444
+2026-03-23 21:11:41,863 - SSH honeypot on port 2222
+2026-03-23 21:11:41,864 - FTP honeypot on port 2121
+2026-03-23 21:11:41,864 - HTTP honeypot on port 8080
+2026-03-23 21:11:41,864 - Telnet honeypot on port 2323
+2026-03-23 21:11:41,864 - NC honeypot on port 4444
+2026-03-23 21:12:12,705 - [CONN] ssh(2222) 127.0.0.1: connected - Local/Local
+2026-03-23 21:12:12,707 - [ERR] ssh: 'Transport' object has no attribute 'set_gss_api'
+2026-03-23 21:12:15,804 - [CONN] ftp(2121) 127.0.0.1: connected - Local
+2026-03-23 21:12:17,911 - [CMD] ftp(2121) 127.0.0.1: USER anonymous [ATTACK: Reconnaissance]
+2026-03-23 21:12:17,913 - [CMD] ftp(2121) 127.0.0.1: PASS test@test.com [ATTACK: Brute Force]
+2026-03-23 21:12:17,914 - [CMD] ftp(2121) 127.0.0.1: TYPE A [ATTACK: Reconnaissance]
+2026-03-23 21:12:17,915 - [CMD] ftp(2121) 127.0.0.1: QUIT [ATTACK: Reconnaissance]
+2026-03-23 21:12:17,925 - [CONN] http(8080) 127.0.0.1: connected - Local
+2026-03-23 21:12:17,927 - [CMD] http(8080) 127.0.0.1: GET /wp-admin HTTP/1.1 [ATTACK: Reconnaissance]
+2026-03-23 21:12:17,928 - [CONN] telnet(2323) 127.0.0.1: connected - Local
+2026-03-23 21:12:17,929 - [CMD] telnet(2323) 127.0.0.1: root [ATTACK: Privilege Escalation]
+2026-03-23 21:12:18,430 - [CMD] telnet(2323) 127.0.0.1: password [ATTACK: Reconnaissance]
+2026-03-23 21:12:18,933 - [CMD] telnet(2323) 127.0.0.1: ls -la [ATTACK: Reconnaissance]
+2026-03-23 21:12:18,939 - [CONN] nc(4444) 127.0.0.1: connected - Local
+2026-03-23 21:12:18,941 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-23 21:13:01,504 - [CONN] ssh(2222) 127.0.0.1: connected - Local/Local
+2026-03-23 21:13:01,505 - [ERR] ssh: 'Transport' object has no attribute 'set_gss_api'
+2026-03-23 21:13:04,605 - [CONN] ftp(2121) 127.0.0.1: connected - Local
+2026-03-23 21:13:04,607 - [CMD] ftp(2121) 127.0.0.1: USER anonymous [ATTACK: Reconnaissance]
+2026-03-23 21:13:04,610 - [CMD] ftp(2121) 127.0.0.1: PASS test@test.com [ATTACK: Brute Force]
+2026-03-23 21:13:04,613 - [CMD] ftp(2121) 127.0.0.1: TYPE A [ATTACK: Reconnaissance]
+2026-03-23 21:13:04,617 - [CMD] ftp(2121) 127.0.0.1: QUIT [ATTACK: Reconnaissance]
+2026-03-23 21:13:04,632 - [CONN] http(8080) 127.0.0.1: connected - Local
+2026-03-23 21:13:04,633 - [CMD] http(8080) 127.0.0.1: GET /wp-admin HTTP/1.1 [ATTACK: Reconnaissance]
+2026-03-23 21:13:04,636 - [CONN] telnet(2323) 127.0.0.1: connected - Local
+2026-03-23 21:13:04,636 - [CMD] telnet(2323) 127.0.0.1: root [ATTACK: Privilege Escalation]
+2026-03-23 21:13:05,142 - [CMD] telnet(2323) 127.0.0.1: password [ATTACK: Reconnaissance]
+2026-03-23 21:13:05,648 - [CMD] telnet(2323) 127.0.0.1: ls -la [ATTACK: Reconnaissance]
+2026-03-23 21:13:05,654 - [CONN] nc(4444) 127.0.0.1: connected - Local
+2026-03-23 21:13:05,656 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-25 17:24:52,881 - SSH honeypot on port 2222
+2026-03-25 17:24:52,882 - FTP honeypot on port 2121
+2026-03-25 17:24:52,882 - HTTP honeypot on port 8080
+2026-03-25 17:24:52,882 - Telnet honeypot on port 2323
+2026-03-25 17:24:52,883 - NC honeypot on port 4444
+2026-03-25 17:28:16,643 - [CONN] telnet(2323) 167.82.58.132: connected - United States
+2026-03-25 17:28:16,652 - [CONN] telnet(2323) 167.82.58.132: connected - United States
+2026-03-25 17:28:17,595 - [CMD] telnet(2323) 167.82.58.132: GET / HTTP/1.1
+Host: localhost:2323
+Connection: keep-alive
+sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9 [ATTACK: Malware Attempt]
+2026-03-25 17:28:17,758 - [CMD] telnet(2323) 167.82.58.132: GET / HTTP/1.1
+Host: localhost:2323
+Connection: keep-alive
+Cache-Control: max-age=0
+sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9 [ATTACK: Malware Attempt]
