@@ -490,3 +490,41 @@ ls -la [ATTACK: Reconnaissance]
 2026-03-23 21:13:05,648 - [CMD] telnet(2323) 127.0.0.1: ls -la [ATTACK: Reconnaissance]
 2026-03-23 21:13:05,654 - [CONN] nc(4444) 127.0.0.1: connected - Local
 2026-03-23 21:13:05,656 - [CMD] nc(4444) 127.0.0.1: id [ATTACK: Reconnaissance]
+2026-03-25 17:24:52,881 - SSH honeypot on port 2222
+2026-03-25 17:24:52,882 - FTP honeypot on port 2121
+2026-03-25 17:24:52,882 - HTTP honeypot on port 8080
+2026-03-25 17:24:52,882 - Telnet honeypot on port 2323
+2026-03-25 17:24:52,883 - NC honeypot on port 4444
+2026-03-25 17:28:16,643 - [CONN] telnet(2323) 167.82.58.132: connected - United States
+2026-03-25 17:28:16,652 - [CONN] telnet(2323) 167.82.58.132: connected - United States
+2026-03-25 17:28:17,595 - [CMD] telnet(2323) 167.82.58.132: GET / HTTP/1.1
+Host: localhost:2323
+Connection: keep-alive
+sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9 [ATTACK: Malware Attempt]
+2026-03-25 17:28:17,758 - [CMD] telnet(2323) 167.82.58.132: GET / HTTP/1.1
+Host: localhost:2323
+Connection: keep-alive
+Cache-Control: max-age=0
+sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9 [ATTACK: Malware Attempt]
