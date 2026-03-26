@@ -4,16 +4,30 @@ Run: python api.py (default http://localhost:5050)
 """
 import os
 import sqlite3
+import os
 from collections import Counter
 import logging
-from flask import Flask, jsonify, send_from_directory, request
+from functools import wraps
+from flask import Flask, jsonify, send_from_directory, request, Response
 
 from honeypot import Logger, HoneypotDatabase, SSHService, FTPService, HTTPService, TelnetService, NCService
 
+def check_auth(username, password):
+    return username == os.environ.get("DASHBOARD_USER", "admin") and password == os.environ.get("DASHBOARD_PASS", "secret")
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
+        return f(*args, **kwargs)
+    return decorated
+
 app = Flask(__name__, static_folder="dashboard", static_url_path="")
 # Silence the default Flask/Werkzeug HTTP logs
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+werkzeug_log = logging.getLogger('werkzeug')
+werkzeug_log.setLevel(logging.ERROR)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "honeypot.db")
 
@@ -68,7 +82,8 @@ def stats():
 
 @app.route("/api/connections")
 def connections():
-    req_limit = min(int(request.args.get("limit", 100)), 500)
+    try: req_limit = min(int(request.args.get("limit", 100)), 500)
+    except ValueError: req_limit = 100
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -81,7 +96,8 @@ def connections():
 
 @app.route("/api/commands")
 def commands():
-    limit = min(int(request.args.get("limit", 100)), 500)
+    try: limit = min(int(request.args.get("limit", 100)), 500)
+    except ValueError: limit = 100
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -113,6 +129,7 @@ def get_services():
     return jsonify(status)
 
 @app.route("/api/services/<name>/toggle", methods=["POST"])
+@requires_auth
 def toggle_service(name):
     if name not in services:
         return jsonify({"error": "Service not found"}), 404
@@ -131,4 +148,5 @@ def start_services():
             svc.start()
 
 if __name__ == "__main__":
+    start_services()
     app.run(host="0.0.0.0", port=5050, debug=False)

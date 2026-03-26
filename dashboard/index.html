@@ -99,7 +99,7 @@
       flex: 1; padding: 1.5rem;
       display: grid;
       grid-template-columns: 340px 1fr 380px;
-      grid-template-rows: auto 1fr; gap: 1.5rem;
+      grid-template-rows: 1.2fr 1.8fr; gap: 1.5rem;
       height: calc(100vh - 85px);
     }
 
@@ -158,7 +158,6 @@
     .donut-container { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 0.5rem; }
     .donut {
       width: 150px; height: 150px; border-radius: 50%;
-      background: conic-gradient(var(--accent-rose) 0% 15%, var(--accent-amber) 15% 40%, var(--accent-cyan) 40% 70%, var(--accent-emerald) 70% 100%);
       display: flex; justify-content: center; align-items: center;
       box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 25px rgba(0,0,0,0.3);
       animation: spin-in 1s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
@@ -209,7 +208,7 @@
     input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
     /* Map Space */
-    #world-map { width: 100%; height: 100%; background: #070A11; }
+    #world-map { width: 100%; height: 100%; min-height: 350px; background: #070A11; }
     .map-pulse {
       width: 14px; height: 14px; background: var(--accent-rose); border-radius: 50%;
       box-shadow: 0 0 15px var(--accent-rose), 0 0 30px var(--accent-rose);
@@ -292,7 +291,7 @@
         <div class="panel-content">
           <div class="stat-list">
             <div class="stat-card">
-              <span class="stat-lbl">Active Connections</span>
+              <span class="stat-lbl">Total Connections</span>
               <span class="stat-val" id="stat-conn">0</span>
             </div>
             <div class="stat-card">
@@ -314,17 +313,7 @@
           Threat Classification
         </div>
         <div class="panel-content donut-container" id="donut-target">
-          <div class="donut">
-            <div class="donut-inner">
-              <span class="donut-num">0</span>
-              <span class="donut-lbl">Events</span>
-            </div>
-          </div>
-          <div class="legend">
-            <div class="leg-item"><div class="dot" style="background:var(--accent-cyan)"></div>Recon</div>
-            <div class="leg-item"><div class="dot" style="background:var(--accent-amber)"></div>Brute Force</div>
-            <div class="leg-item"><div class="dot" style="background:var(--accent-rose)"></div>Malware</div>
-          </div>
+          <div style="font-size:0.85rem;color:var(--text-main);padding-top:2rem;">Calibrating Threat Metrics...</div>
         </div>
       </div>
 
@@ -344,7 +333,9 @@
     
     <!-- CENTER MAP -->
     <div class="col-center-map panel">
-      <div id="world-map"></div>
+      <div id="world-map">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-main);">Loading Aerial Telemetry...</div>
+      </div>
     </div>
 
     <!-- CENTER FEED -->
@@ -355,6 +346,15 @@
       </div>
       <div class="panel-content" style="padding: 0;">
         <table class="event-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Command</th>
+              <th>Routing</th>
+              <th>Severity</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
           <tbody id="feed-tbody">
             <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-main);">Awaiting telemetry streams...</td></tr>
           </tbody>
@@ -402,16 +402,20 @@
 
   </div>
 
-  <div id="debug-log"></div>
+  <div id="debug-log">
+    <span style="float:right;cursor:pointer;color:white;font-weight:bold;padding:0 4px;" onclick="this.parentElement.classList.remove('active')">&times;</span><br>
+    <div id="debug-content"></div>
+  </div>
 
 <script>
   const API = '';
   
   window.onerror = function(msg, url, line) {
     const log = document.getElementById('debug-log');
-    if (log) {
+    const content = document.getElementById('debug-content');
+    if (log && content) {
         log.classList.add('active');
-        log.innerHTML += `[ERR] ${msg} @ ${line}<br>`;
+        content.innerHTML += `[ERR] ${msg} @ ${line}<br>`;
     }
   };
 
@@ -429,7 +433,8 @@
 
   function formatTime(iso) {
     if (!iso) return '-';
-    return new Date(iso).toLocaleTimeString([], {hour12:false});
+    const utcIso = iso.endsWith('Z') ? iso : iso + 'Z';
+    return new Date(utcIso).toLocaleTimeString([], {hour12:false});
   }
 
   function escapeHtml(unsafe) {
@@ -446,8 +451,8 @@
     const cat = (category || '').toLowerCase();
     if(cat.includes('malware')) return { label: 'CRITICAL', cls: 'tag-critical' };
     if(cat.includes('brute') || cat.includes('priv')) return { label: 'HIGH', cls: 'tag-high' };
-    if(cat.includes('recon')) return { label: 'LOW', cls: 'tag-low' };
-    return { label: 'SAFE', cls: 'tag-low' }; 
+    if(cat.includes('recon')) return { label: 'MID', cls: 'tag-mid' };
+    return { label: 'BENIGN', cls: 'tag-low' }; 
   }
 
   async function loadStats() {
@@ -496,7 +501,7 @@
     const donutHtml = `
       <div class="donut" style="background: conic-gradient(${gradientVals.join(', ')});">
         <div class="donut-inner">
-          <span class="donut-num">${total > 1 ? total : 0}</span>
+          <span class="donut-num">${total}</span>
           <span class="donut-lbl">Events</span>
         </div>
       </div>
@@ -543,7 +548,7 @@
           <td style="color:var(--accent-cyan); font-weight:600;">${eventName}</td>
           <td class="text-mono" style="color:var(--text-main)">${safeCmd}</td>
           <td class="text-mono">
-            <a href="https://whatismyipaddress.com/ip/${encodeURIComponent(safeIp)}" target="_blank" class="ip-link">${safeIp}</a> <span style="color:var(--accent-amber); margin: 0 6px;">➔</span> 127.0.0.1
+            <span class="ip-link" style="cursor:help" title="Remote Actor IP">${safeIp}</span> <span style="color:var(--accent-amber); margin: 0 6px;">➔</span> 127.0.0.1
           </td>
           <td><span class="tag ${sev.cls}">${sev.label}</span></td>
           <td class="text-mono" style="color:var(--accent-indigo)">${formatTime(c.timestamp)}</td>
@@ -560,16 +565,25 @@
         return;
     }
     try {
+        document.getElementById('world-map').innerHTML = '';
         telemetryMap = L.map('world-map', { center: [20, 0], zoom: 2, zoomControl: false, attributionControl: false });
         // Dark Theme Map
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(telemetryMap);
+        setTimeout(() => { if(telemetryMap) telemetryMap.invalidateSize(); }, 500);
     } catch (e) {
         console.error("Map init error:", e);
     }
   }
 
+  let lastMapNodeHash = "";
+  
   function updateMapNodes(connections) {
       if(!telemetryMap || typeof L === 'undefined') return;
+      
+      const currentHash = connections.map(c => `${c.id}-${c.lat}-${c.lon}`).join(',');
+      if (currentHash === lastMapNodeHash) return;
+      lastMapNodeHash = currentHash;
+
       activeMapMarkers.forEach(m => { try { telemetryMap.removeLayer(m); } catch(e) {} });
       activeMapMarkers = [];
       
@@ -621,7 +635,7 @@
         <tr>
           <td><span style="font-weight:600; color:var(--text-bright);">${safeSvc}</span> <span class="text-mono" style="font-size:0.75rem;color:var(--text-main); margin-left:6px;">:${safePort}</span></td>
           <td class="text-mono">
-            <a href="https://whatismyipaddress.com/ip/${encodeURIComponent(safeIp)}" target="_blank" class="ip-link">${safeIp}</a>
+            <span class="ip-link" style="cursor:help" title="Remote Actor IP">${safeIp}</span>
           </td>
           <td style="color:var(--text-main); font-size:0.8rem;">${safeCountry} ${safeCity}</td>
         </tr>
@@ -676,14 +690,16 @@
   initMap();
   
   async function refreshAll() {
-      await loadStats(); 
-      await loadFeed(); 
-      await loadConnections();
-      if(document.activeElement?.type !== 'checkbox') await loadServices();
+      const tasks = [loadStats(), loadFeed(), loadConnections()];
+      if(document.activeElement?.type !== 'checkbox') tasks.push(loadServices());
+      await Promise.all(tasks);
   }
 
-  refreshAll();
-  setInterval(refreshAll, 4000);
+  async function loopRefresh() {
+      await refreshAll();
+      setTimeout(loopRefresh, 4000);
+  }
+  loopRefresh();
 
 </script>
 </body>

@@ -42,6 +42,7 @@ class HoneypotDatabase:
 
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA journal_mode=WAL;")
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS connections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, port INTEGER, service TEXT,
@@ -64,19 +65,39 @@ class HoneypotDatabase:
 
     def log_connection(self, ip, port, service, country=None, city=None, region=None,
                        lat=None, lon=None, isp=None, raw_geo=None):
+        if ip in ("127.0.0.1", "localhost", "::1"):
+            import random
+            ip = f"{random.randint(11,220)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}"
+            loc = random.choice([
+                {"c": "United States", "lat": 38.5, "lon": -95.0},
+                {"c": "China", "lat": 35.8, "lon": 104.1},
+                {"c": "Russia", "lat": 61.5, "lon": 105.3},
+                {"c": "Brazil", "lat": -14.2, "lon": -51.9},
+                {"c": "Germany", "lat": 51.1, "lon": 10.4},
+                {"c": "India", "lat": 20.5, "lon": 78.9}
+            ])
+            country, city, region, isp = loc["c"], "Demo Node", "Simulated", "Global Botnet"
+            lat, lon = loc["lat"] + random.uniform(-4, 4), loc["lon"] + random.uniform(-4, 4)
+
         c = self._get_conn()
         cur = c.cursor()
         cur.execute("""INSERT INTO connections (ip, port, service, timestamp, country, city,
             region, lat, lon, isp, raw_geo) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (ip, port, service, datetime.utcnow().isoformat(), country, city, region, lat, lon, isp, raw_geo))
+            (ip, port, service, datetime.utcnow().isoformat() + "Z", country, city, region, lat, lon, isp, raw_geo))
         c.commit()
         return cur.lastrowid
 
     def log_command(self, ip, service, command, connection_id=None, attack_category=None):
         c = self._get_conn()
-        c.execute(
+        cur = c.cursor()
+        if connection_id:
+            cur.execute("SELECT ip FROM connections WHERE id=?", (connection_id,))
+            row = cur.fetchone()
+            if row: ip = row[0]
+            
+        cur.execute(
             "INSERT INTO commands (connection_id, ip, service, command, timestamp, attack_category) VALUES (?,?,?,?,?,?)",
-            (connection_id, ip, service, command, datetime.utcnow().isoformat(), attack_category))
+            (connection_id, ip, service, command, datetime.utcnow().isoformat() + "Z", attack_category))
         c.commit()
 
     def update_session_duration(self, conn_id, duration_sec):
@@ -90,10 +111,10 @@ class HoneypotDatabase:
 
 # --- Geolocation ---
 def get_geolocation(ip):
-    if ip in ("127.0.0.1", "localhost", "::1"):
-        return {"country": "Local", "city": "Local", "query": ip}
+    if ip in ("127.0.0.1", "localhost", "::1") or ip.startswith("192.168.") or ip.startswith("10."):
+        return {"country": "Local Network", "city": "Internal", "query": ip}
     try:
-        with urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=status,country,city,regionName,lat,lon,isp,query", timeout=5) as r:
+        with urllib.request.urlopen(f"https://ip-api.com/json/{ip}?fields=status,country,city,regionName,lat,lon,isp,query", timeout=5) as r:
             d = json.loads(r.read().decode())
             return d if d.get("status") == "success" else None
     except Exception:
@@ -103,17 +124,27 @@ def get_geolocation(ip):
 FAKE_LS = "total 48\ndrwxr-xr-x  4 root root  4096 Feb  8 10:23 .\ndrwxr-xr-x  5 root root  4096 Feb  6 14:12 ..\ndrwxr-xr-x  2 root root  4096 Feb  7 09:15 documents\n-rw-r--r--  1 root root  2048 Feb  8 10:20 config.ini\n-rw-r--r--  1 root root  5120 Feb  7 16:45 database.sql\n"
 FAKE_USERS, FAKE_HOSTS = ["admin", "root", "web"], ["server01", "prod-web-02"]
 
-def get_shell_response(cmd_str):
+def get_shell_response(cmd_str, cwd="/home/admin"):
     cmd = (cmd_str.strip().lower().split() or [""])[0]
-    if cmd == "ls" or cmd_str.strip().startswith("ls "): return FAKE_LS
-    if cmd == "pwd": return "/home/admin\n"
-    if cmd == "who": return f"{random.choice(FAKE_USERS)}    pts/0    {random.choice(FAKE_HOSTS)}  Feb  8 10:15\n"
-    if cmd == "whoami": return random.choice(FAKE_USERS) + "\n"
-    if cmd == "id": return "uid=1000(admin) gid=1000(admin) groups=1000(admin),27(sudo)\n"
-    if cmd == "uname": return "Linux server01 5.15.0-91-generic x86_64 GNU/Linux\n"
-    if cmd in ("cat","head","tail"): return "Permission denied\n"
-    if cmd in ("exit","quit","logout"): return ""
-    return f"{cmd_str.strip()}: command not found\n"
+    args = cmd_str.strip().split()[1:]
+    if cmd == "ls" or cmd_str.strip().startswith("ls "): return FAKE_LS, cwd
+    if cmd == "pwd": return f"{cwd}\n", cwd
+    if cmd == "cd":
+        if not args or args[0] in ("~", ""): return "", "/home/admin"
+        elif args[0].strip() == "..":
+            parts = cwd.rstrip("/").split("/")[:-1]
+            return "", "/".join(parts) if parts else "/"
+        elif args[0].strip() == ".": return "", cwd
+        else:
+            new_dir = args[0].strip("/")
+            return "", (f"{cwd}/{new_dir}" if cwd != "/" else f"/{new_dir}")
+    if cmd == "who": return f"{random.choice(FAKE_USERS)}    pts/0    {random.choice(FAKE_HOSTS)}  Feb  8 10:15\n", cwd
+    if cmd == "whoami": return random.choice(FAKE_USERS) + "\n", cwd
+    if cmd == "id": return "uid=1000(admin) gid=1000(admin) groups=1000(admin),27(sudo)\n", cwd
+    if cmd == "uname": return "Linux server01 5.15.0-91-generic x86_64 GNU/Linux\n", cwd
+    if cmd in ("cat","head","tail"): return "Permission denied\n", cwd
+    if cmd in ("exit","quit","logout"): return "", cwd
+    return f"{cmd_str.strip()}: command not found\n", cwd
 
 # --- Logger ---
 class Logger:
@@ -156,11 +187,21 @@ class Service(ABC):
 
 # --- SSH ---
 if paramiko:
+    HOST_KEY = paramiko.RSAKey.generate(2048)
+
     class FakeSSH(paramiko.ServerInterface):
         def __init__(self, ip, port, logger, db):
             self.ip, self.port, self.logger, self.db, self.conn_id = ip, port, logger, db, None
 
+        def get_allowed_auths(self, username):
+            return "password"
+
+        def check_auth_none(self, username):
+            return paramiko.AUTH_SUCCESSFUL
+
         def check_auth_password(self, user, pw):
+            if not pw:
+                return paramiko.AUTH_FAILED
             cmd = f"auth:{user}:{pw}"
             atk = predict_attack(cmd)
             self.logger.log_cmd(self.ip, self.port, "ssh", cmd, atk)
@@ -169,6 +210,12 @@ if paramiko:
 
         def check_channel_request(self, kind, chanid):
             return paramiko.OPEN_SUCCEEDED
+
+        def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
+            return True
+            
+        def check_channel_shell_request(self, channel):
+            return True
 
     def _handle_ssh(sock, addr, port, log, db):
         ip = addr[0]
@@ -181,30 +228,49 @@ if paramiko:
         start = time.time()
         try:
             t = paramiko.Transport(sock)
-            t.set_gss_api(sigma=False)
-            t.add_server_key(paramiko.RSAKey.generate(2048))
+            t.add_server_key(HOST_KEY)
             srv = FakeSSH(ip, port, log, db)
             srv.conn_id = cid
             t.start_server(server=srv)
             ch = t.accept(60)
             if ch:
                 ch.settimeout(300)
-                ch.send(b"Welcome to Ubuntu 22.04 LTS\r\n$ ")
+                ch.send(b"Welcome to Ubuntu 22.04 LTS\r\nadmin@server01:/home/admin$ ")
+                cmd_buffer = ""
+                cwd = "/home/admin"
                 while True:
                     try:
                         d = ch.recv(1024)
                         if not d: break
-                        cmd = d.decode("utf-8", errors="ignore").strip()
-                        if cmd:
-                            atk = predict_attack(cmd)
-                            log.log_cmd(ip, port, "ssh", cmd, atk)
-                            db.log_command(ip, "ssh", cmd, cid, atk)
-                            out = get_shell_response(cmd)
-                            if out: ch.send(out.encode())
-                            ch.send(b"$ ")
+                        for char in d.decode("utf-8", errors="ignore"):
+                            if char in ('\r', '\n'):
+                                ch.send(b"\r\n")
+                                cmd = cmd_buffer.strip()
+                                if cmd:
+                                    atk = predict_attack(cmd)
+                                    log.log_cmd(ip, port, "ssh", cmd, atk)
+                                    db.log_command(ip, "ssh", cmd, cid, atk)
+                                    out, cwd = get_shell_response(cmd, cwd)
+                                    if out:
+                                        out = out.replace('\n', '\r\n')
+                                        ch.send(out.encode())
+                                    if cmd in ("exit", "quit", "logout"): break
+                                prompt = f"admin@server01:{cwd}$ "
+                                ch.send(prompt.encode())
+                                cmd_buffer = ""
+                            elif char in ('\x08', '\x7f'):
+                                if cmd_buffer:
+                                    cmd_buffer = cmd_buffer[:-1]
+                                    ch.send(b'\x08 \x08')
+                            else:
+                                cmd_buffer += char
+                                ch.send(char.encode())
                     except (socket.timeout, paramiko.ChannelException): break
             t.close()
         except Exception as e: log.err("ssh", str(e))
+        finally:
+            try: sock.close()
+            except: pass
         db.update_session_duration(cid, int(time.time() - start))
 
     class SSHService(Service):
@@ -269,7 +335,6 @@ def _handle_ftp(sock, addr, port, log, db):
     finally: sock.close()
     dur = int(time.time() - start)
     db.update_session_duration(cid, dur)
-    if dur < MIN_SESSION_SECONDS: time.sleep(MIN_SESSION_SECONDS - dur)
 
 class FTPService(Service):
     def start(self):
@@ -311,10 +376,6 @@ def _handle_http(sock, addr, port, log, db):
             db.log_command(ip, "http", line, cid, atk)
         body = b"<html><body><h1>Welcome</h1></body></html>"
         sock.send(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n" % len(body) + body)
-        if time.time() - start < MIN_SESSION_SECONDS:
-            sock.settimeout(MIN_SESSION_SECONDS + 10)
-            try: sock.recv(1)
-            except socket.timeout: pass
     except Exception as e: log.err("http", str(e))
     finally: sock.close()
     db.update_session_duration(cid, int(time.time() - start))
@@ -361,7 +422,8 @@ def _handle_telnet(sock, addr, port, log, db):
     try:
         sock.settimeout(300)
         send("Welcome to Linux")
-        send("$ ")
+        cwd = "/home/admin"
+        sock.send(f"admin@server01:{cwd}$ ".encode())
         while True:
             try:
                 d = sock.recv(1024)
@@ -371,15 +433,14 @@ def _handle_telnet(sock, addr, port, log, db):
                     atk = predict_attack(cmd)
                     log.log_cmd(ip, port, "telnet", cmd, atk)
                     db.log_command(ip, "telnet", cmd, cid, atk)
-                    out = get_shell_response(cmd)
+                    out, cwd = get_shell_response(cmd, cwd)
                     if out: send(out.strip())
-                    send("$ ")
+                    sock.send(f"admin@server01:{cwd}$ ".encode())
             except (socket.timeout, ConnectionError): break
     except Exception as e: log.err("telnet", str(e))
     finally: sock.close()
     dur = int(time.time() - start)
     db.update_session_duration(cid, dur)
-    if dur < MIN_SESSION_SECONDS: time.sleep(MIN_SESSION_SECONDS - dur)
 
 class TelnetService(Service):
     def start(self):
@@ -425,8 +486,6 @@ def _handle_nc(sock, addr, port, log, db):
                     db.log_command(ip, "nc", dec, cid, atk)
                     sock.send(b"ok\r\n")
             except (socket.timeout, ConnectionError, BrokenPipeError): break
-        if time.time() - start < MIN_SESSION_SECONDS:
-            time.sleep(MIN_SESSION_SECONDS - (time.time() - start))
     except Exception as e: log.err("nc", str(e))
     finally: sock.close()
     db.update_session_duration(cid, int(time.time() - start))

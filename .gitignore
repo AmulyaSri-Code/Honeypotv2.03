@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+honeypot.db
+honeypot.log
+honeypot_out.log
+honeypot.db-shm
+honeypot.db-wal
+.DS_Store
