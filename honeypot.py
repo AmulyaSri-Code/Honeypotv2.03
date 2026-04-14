@@ -13,7 +13,7 @@ import threading
 import time
 import urllib.request
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     import paramiko
@@ -83,7 +83,7 @@ class HoneypotDatabase:
         cur = c.cursor()
         cur.execute("""INSERT INTO connections (ip, port, service, timestamp, country, city,
             region, lat, lon, isp, raw_geo) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (ip, port, service, datetime.utcnow().isoformat() + "Z", country, city, region, lat, lon, isp, raw_geo))
+            (ip, port, service, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z", country, city, region, lat, lon, isp, raw_geo))
         c.commit()
         return cur.lastrowid
 
@@ -97,7 +97,7 @@ class HoneypotDatabase:
             
         cur.execute(
             "INSERT INTO commands (connection_id, ip, service, command, timestamp, attack_category) VALUES (?,?,?,?,?,?)",
-            (connection_id, ip, service, command, datetime.utcnow().isoformat() + "Z", attack_category))
+            (connection_id, ip, service, command, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z", attack_category))
         c.commit()
 
     def update_session_duration(self, conn_id, duration_sec):
@@ -157,6 +157,9 @@ class Logger:
         ch = logging.StreamHandler(sys.stdout)
         ch.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
         self._log.addHandler(ch)
+        
+        # Silence paramiko internal logs for dropped connections
+        logging.getLogger("paramiko").setLevel(logging.CRITICAL)
 
     def log_conn(self, ip, port, svc, status, detail=""):
         self._log.info(f"[CONN] {svc}({port}) {ip}: {status}" + (f" - {detail}" if detail else ""))
@@ -168,7 +171,10 @@ class Logger:
         self._log.info(msg)
 
     def err(self, svc, msg):
-        self._log.error(f"[ERR] {svc}: {msg}")
+        msg_str = str(msg)
+        if not msg_str or "Connection reset by peer" in msg_str or "Broken pipe" in msg_str:
+            return
+        self._log.error(f"[ERR] {svc}: {msg_str}")
 
     def info(self, msg):
         self._log.info(msg)
@@ -512,27 +518,50 @@ class NCService(Service):
 
 # --- Main ---
 def main():
-    log = Logger()
-    db = HoneypotDatabase()
-    svcs = [
-        (SSHService("ssh", 2222, log, db), 2222),
-        (FTPService("ftp", 2121, log, db), 2121),
-        (HTTPService("http", 8080, log, db), 8080),
-        (TelnetService("telnet", 2323, log, db), 2323),
-        (NCService("nc", 4444, log, db), 4444),
-    ]
-    for s, p in svcs:
-        s.start()
+    import socket
+    import threading
+    try:
+        from api import app, start_services, services, log, hp_db
+        db = hp_db
+    except ImportError as e:
+        print(f"Failed to load API: {e}")
+        import sys
+        sys.exit(1)
+
+    start_services()
     log.info("Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444")
     log.info("DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification")
     log.info("Run 'python ml/train.py' first to train model. Ctrl+C to stop.")
 
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(0)
+            s.connect(('10.254.254.254', 1))
+            local_ip = s.getsockname()[0]
+    except OSError:
+        local_ip = "127.0.0.1"
+
+    print("\n" + "="*50)
+    print("HONEYPOT NEXUS DASHBOARD")
+    print("="*50)
+    print("  Local Access:   http://localhost:5050")
+    print(f"  Network Access: http://{local_ip}:5050")
+    print("="*50 + "\n")
+
+    # Run dashboard in background thread so signal handling works normally
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5050, debug=False, use_reloader=False), daemon=True).start()
+
     def stop(*_):
         log.info("Shutting down...")
-        for s, _ in svcs: s.stop()
+        for name, s in services.items(): s.stop()
         db.close()
+        import sys
         sys.exit(0)
 
+    import signal
+    import time
+    import sys
+    
     signal.signal(signal.SIGINT, stop)
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, stop)

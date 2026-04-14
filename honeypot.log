@@ -5354,3 +5354,43 @@ Accept-Language: en-US,en;q=0.9 [ATTACK: Malware Attempt]
 2026-03-27 03:09:24,983 - HTTP honeypot on port 8080
 2026-03-27 03:09:24,983 - Telnet honeypot on port 2323
 2026-03-27 03:09:24,983 - NC honeypot on port 4444
+2026-04-14 13:28:47,805 - SSH honeypot on port 2222
+2026-04-14 13:28:47,805 - FTP honeypot on port 2121
+2026-04-14 13:28:47,806 - HTTP honeypot on port 8080
+2026-04-14 13:28:47,806 - Telnet honeypot on port 2323
+2026-04-14 13:28:47,806 - NC honeypot on port 4444
+2026-04-14 13:28:47,806 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-04-14 13:28:47,806 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
+2026-04-14 13:28:47,806 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.
+2026-04-14 13:29:03,236 - Shutting down...
+2026-04-14 13:30:39,511 - SSH honeypot on port 2222
+2026-04-14 13:30:39,511 - FTP honeypot on port 2121
+2026-04-14 13:30:39,511 - HTTP honeypot on port 8080
+2026-04-14 13:30:39,511 - Telnet honeypot on port 2323
+2026-04-14 13:30:39,511 - NC honeypot on port 4444
+2026-04-14 13:30:39,511 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-04-14 13:30:39,511 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
+2026-04-14 13:30:39,511 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.
+2026-04-14 13:35:52,293 - [CONN] http(8080) 127.0.0.1: connected - Local Network
+2026-04-14 13:35:53,739 - [CMD] http(8080) 127.0.0.1: GET / HTTP/1.1 [ATTACK: Reconnaissance]
+2026-04-14 13:37:24,415 - [CONN] ssh(2222) 127.0.0.1: connected - Local Network/Internal
+2026-04-14 13:37:24,476 - [ERR] ssh: [Errno 54] Connection reset by peer
+2026-04-14 13:38:14,938 - Shutting down...
+2026-04-14 13:40:31,657 - SSH honeypot on port 2222
+2026-04-14 13:40:31,657 - FTP honeypot on port 2121
+2026-04-14 13:40:31,657 - HTTP honeypot on port 8080
+2026-04-14 13:40:31,657 - Telnet honeypot on port 2323
+2026-04-14 13:40:31,657 - NC honeypot on port 4444
+2026-04-14 13:40:31,657 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-04-14 13:40:31,657 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
+2026-04-14 13:40:31,657 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.
+2026-04-14 13:44:07,011 - Shutting down...
+2026-04-14 13:44:20,357 - SSH honeypot on port 2222
+2026-04-14 13:44:20,357 - FTP honeypot on port 2121
+2026-04-14 13:44:20,358 - HTTP honeypot on port 8080
+2026-04-14 13:44:20,358 - Telnet honeypot on port 2323
+2026-04-14 13:44:20,358 - NC honeypot on port 4444
+2026-04-14 13:44:20,358 - Honeypot running. SSH=2222, FTP=2121, HTTP=8080, Telnet=2323, NC=4444
+2026-04-14 13:44:20,358 - DB: honeypot.db | Log: honeypot.log | ML: real-time attack classification
+2026-04-14 13:44:20,358 - Run 'python ml/train.py' first to train model. Ctrl+C to stop.
+2026-04-14 13:44:44,490 - Shutting down...
