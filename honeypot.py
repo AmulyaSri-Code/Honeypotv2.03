@@ -14,6 +14,7 @@ import time
 import urllib.request
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from app_meta import APP_NAME, APP_VERSION
 
 try:
     import paramiko
@@ -53,8 +54,38 @@ class HoneypotDatabase:
                 id INTEGER PRIMARY KEY AUTOINCREMENT, connection_id INTEGER, ip TEXT,
                 service TEXT, command TEXT, timestamp TEXT, attack_category TEXT
             );
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'admin',
+                created_at TEXT NOT NULL,
+                last_login_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                actor TEXT NOT NULL,
+                action TEXT NOT NULL,
+                target TEXT,
+                ip TEXT,
+                timestamp TEXT NOT NULL,
+                details TEXT
+            );
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                role TEXT NOT NULL DEFAULT 'viewer',
+                created_by TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                last_used_at TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
             CREATE INDEX IF NOT EXISTS idx_connections_ip ON connections(ip);
             CREATE INDEX IF NOT EXISTS idx_commands_ip ON commands(ip);
+            CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active);
         """)
         try:
             conn.execute("ALTER TABLE commands ADD COLUMN attack_category TEXT")
@@ -542,8 +573,9 @@ def main():
         local_ip = "127.0.0.1"
 
     print("\n" + "="*50)
-    print("HONEYPOT NEXUS DASHBOARD")
+    print(f"{APP_NAME} DASHBOARD")
     print("="*50)
+    print(f"  Version:        {APP_VERSION}")
     print("  Local Access:   http://localhost:5050")
     print(f"  Network Access: http://{local_ip}:5050")
     print("="*50 + "\n")

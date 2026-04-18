@@ -14,4 +14,106 @@ services:
       - ./honeypot.db:/app/honeypot.db
       - ./honeypot.log:/app/honeypot.log
       - ./honeypot_out.log:/app/honeypot_out.log
+    labels:
+      - autoheal=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: honeypot_autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=10
+      - CURL_TIMEOUT=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    container_name: honeypot_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.14.3
+    container_name: honeypot_logstash
+    depends_on:
+      - elasticsearch
+      - honeypot
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./honeypot.log:/var/log/honeypot/honeypot.log:ro
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: honeypot_kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  elasticvue:
+    image: cars10/elasticvue:latest
+    container_name: honeypot_elasticvue
+    depends_on:
+      - elasticsearch
+    ports:
+      - "8088:8080"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  cyberchef:
+    image: ghcr.io/gchq/cyberchef:latest
+    container_name: honeypot_cyberchef
+    ports:
+      - "8089:80"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  spiderfoot:
+    image: spiderfoot/spiderfoot:latest
+    container_name: honeypot_spiderfoot
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: honeypot_suricata
+    command: ["-i", "eth0"]
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    volumes:
+      - ./suricata/log:/var/log/suricata
+      - ./suricata/rules:/var/lib/suricata/rules
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+volumes:
+  elastic_data:
