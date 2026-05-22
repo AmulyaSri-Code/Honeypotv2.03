@@ -1,0 +1,40 @@
+services:
+  honeypot:
+    build: .
+    container_name: honeypot_nexus_prod
+    env_file:
+      - .env
+    environment:
+      HONEYPOT_BIND_HOST: 0.0.0.0
+      HONEYPOT_DASHBOARD_PORT: 5050
+    ports:
+      # Public decoy services. Restrict with cloud firewall/security groups where possible.
+      - "2222:2222"
+      - "2121:2121"
+      - "8080:8080"
+      - "2323:2323"
+      - "4444:4444"
+      # Management dashboard. For internet deployments, prefer binding to 127.0.0.1 and proxying through TLS/VPN.
+      - "127.0.0.1:5050:5050"
+    volumes:
+      - honeypot_data:/app/data
+      - ./honeypot.db:/app/honeypot.db
+      - ./honeypot.log:/app/honeypot.log
+      - ./honeypot_out.log:/app/honeypot_out.log
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  honeypot_data:

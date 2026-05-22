@@ -4,6 +4,7 @@ Database: honeypot.db | Log: honeypot.log | Connections held 2+ min for IP/geo t
 """
 import json
 import logging
+import os
 import random
 import signal
 import socket
@@ -14,7 +15,14 @@ import time
 import urllib.request
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from ipaddress import ip_address
+
+from env_loader import load_env_file
+
+load_env_file()
+
 from app_meta import APP_NAME, APP_VERSION
+from notifications import send_alert_async, severity_for_category
 
 try:
     import paramiko
@@ -27,6 +35,34 @@ except ImportError:
     def predict_attack(cmd): return None
 
 MIN_SESSION_SECONDS = 120
+MAX_CAPTURE_CHARS = int(os.environ.get("HONEYPOT_MAX_CAPTURE_CHARS", "2048"))
+SOCKET_TIMEOUT_SECONDS = int(os.environ.get("HONEYPOT_SOCKET_TIMEOUT_SECONDS", "60"))
+
+
+def sanitize_event_text(value, max_chars=MAX_CAPTURE_CHARS):
+    """Normalize attacker-controlled text before DB/log storage.
+
+    Keeps payloads useful for defensive analysis while preventing multiline log
+    forging, terminal control characters, and unbounded disk growth.
+    """
+    text = "" if value is None else str(value)
+    normalized = []
+    for ch in text:
+        if ch == "\n":
+            normalized.append("\\n")
+        elif ch == "\r":
+            normalized.append("\\r")
+        elif ch == "\t":
+            normalized.append("\\t")
+        elif ord(ch) < 32 or ord(ch) == 127:
+            normalized.append("?")
+        else:
+            normalized.append(ch)
+    cleaned = "".join(normalized)
+    suffix = "...[truncated]"
+    if len(cleaned) > max_chars:
+        return cleaned[: max(0, max_chars - len(suffix))] + suffix
+    return cleaned
 
 # --- Database ---
 class HoneypotDatabase:
@@ -119,17 +155,27 @@ class HoneypotDatabase:
         return cur.lastrowid
 
     def log_command(self, ip, service, command, connection_id=None, attack_category=None):
+        command = sanitize_event_text(command)
         c = self._get_conn()
         cur = c.cursor()
         if connection_id:
             cur.execute("SELECT ip FROM connections WHERE id=?", (connection_id,))
             row = cur.fetchone()
             if row: ip = row[0]
-            
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
         cur.execute(
             "INSERT INTO commands (connection_id, ip, service, command, timestamp, attack_category) VALUES (?,?,?,?,?,?)",
-            (connection_id, ip, service, command, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z", attack_category))
+            (connection_id, ip, service, command, timestamp, attack_category))
         c.commit()
+        send_alert_async({
+            "event_type": "command",
+            "ip": ip,
+            "service": service,
+            "command": command,
+            "timestamp": timestamp,
+            "attack_category": attack_category,
+            "severity": severity_for_category(attack_category),
+        }, logging.getLogger("HoneypotAlerts"))
 
     def update_session_duration(self, conn_id, duration_sec):
         self._get_conn().execute("UPDATE connections SET session_duration_sec=? WHERE id=?", (duration_sec, conn_id))
@@ -142,6 +188,20 @@ class HoneypotDatabase:
 
 # --- Geolocation ---
 def get_geolocation(ip):
+    try:
+        parsed_ip = ip_address(ip)
+        if (
+            parsed_ip.is_loopback
+            or parsed_ip.is_private
+            or parsed_ip.is_link_local
+            or parsed_ip.is_multicast
+            or parsed_ip.is_reserved
+        ):
+            return {"country": "Local Network", "city": "Internal", "query": ip}
+    except ValueError:
+        if ip == "localhost":
+            return {"country": "Local Network", "city": "Internal", "query": ip}
+
     if ip in ("127.0.0.1", "localhost", "::1") or ip.startswith("192.168.") or ip.startswith("10."):
         return {"country": "Local Network", "city": "Internal", "query": ip}
     try:
@@ -196,6 +256,7 @@ class Logger:
         self._log.info(f"[CONN] {svc}({port}) {ip}: {status}" + (f" - {detail}" if detail else ""))
 
     def log_cmd(self, ip, port, svc, cmd, attack_category=None):
+        cmd = sanitize_event_text(cmd)
         msg = f"[CMD] {svc}({port}) {ip}: {cmd}"
         if attack_category:
             msg += f" [ATTACK: {attack_category}]"
@@ -215,6 +276,54 @@ class Service(ABC):
     def __init__(self, name, port, logger, db):
         self.name, self.port, self.logger, self.db = name, port, logger, db
         self.running, self.thread, self.sock = False, None, None
+        self.max_connections = int(os.environ.get("HONEYPOT_MAX_CONNECTIONS_PER_SERVICE", "100"))
+        self.max_connections_per_ip = int(os.environ.get("HONEYPOT_MAX_CONNECTIONS_PER_IP", "10"))
+        self._connection_lock = threading.Lock()
+        self._active_connections = 0
+        self._active_by_ip = {}
+
+    def _try_acquire_connection(self, addr):
+        ip = addr[0] if addr else "unknown"
+        with self._connection_lock:
+            if self._active_connections >= self.max_connections:
+                return False
+            if self._active_by_ip.get(ip, 0) >= self.max_connections_per_ip:
+                return False
+            self._active_connections += 1
+            self._active_by_ip[ip] = self._active_by_ip.get(ip, 0) + 1
+            return True
+
+    def _release_connection(self, addr):
+        ip = addr[0] if addr else "unknown"
+        with self._connection_lock:
+            self._active_connections = max(0, self._active_connections - 1)
+            current = self._active_by_ip.get(ip, 0)
+            if current <= 1:
+                self._active_by_ip.pop(ip, None)
+            else:
+                self._active_by_ip[ip] = current - 1
+
+    def _spawn_handler(self, handler, sock, addr):
+        if not self._try_acquire_connection(addr):
+            try:
+                sock.send(b"Service temporarily busy.\r\n")
+            except Exception:
+                pass
+            try:
+                sock.close()
+            except Exception:
+                pass
+            if self.logger:
+                self.logger.err(self.name, f"connection limit reached for {addr[0] if addr else 'unknown'}")
+            return
+
+        def guarded():
+            try:
+                handler(sock, addr, self.port, self.logger, self.db)
+            finally:
+                self._release_connection(addr)
+
+        threading.Thread(target=guarded, daemon=True).start()
 
     @abstractmethod
     def start(self): pass
@@ -327,8 +436,8 @@ if paramiko:
             while self.running:
                 try:
                     s, a = self.sock.accept()
-                    s.settimeout(300)
-                    threading.Thread(target=_handle_ssh, args=(s, a, self.port, self.logger, self.db), daemon=True).start()
+                    s.settimeout(SOCKET_TIMEOUT_SECONDS)
+                    self._spawn_handler(_handle_ssh, s, a)
                 except socket.timeout: continue
                 except Exception as e:
                     if self.running: self.logger.err("ssh", str(e))
@@ -385,7 +494,8 @@ class FTPService(Service):
             while self.running:
                 try:
                     s, a = self.sock.accept()
-                    threading.Thread(target=_handle_ftp, args=(s, a, self.port, self.logger, self.db), daemon=True).start()
+                    s.settimeout(SOCKET_TIMEOUT_SECONDS)
+                    self._spawn_handler(_handle_ftp, s, a)
                 except socket.timeout: continue
         self.thread = threading.Thread(target=loop, daemon=True)
         self.thread.start()
@@ -429,7 +539,8 @@ class HTTPService(Service):
             while self.running:
                 try:
                     s, a = self.sock.accept()
-                    threading.Thread(target=_handle_http, args=(s, a, self.port, self.logger, self.db), daemon=True).start()
+                    s.settimeout(SOCKET_TIMEOUT_SECONDS)
+                    self._spawn_handler(_handle_http, s, a)
                 except socket.timeout: continue
         self.thread = threading.Thread(target=loop, daemon=True)
         self.thread.start()
@@ -491,7 +602,8 @@ class TelnetService(Service):
             while self.running:
                 try:
                     s, a = self.sock.accept()
-                    threading.Thread(target=_handle_telnet, args=(s, a, self.port, self.logger, self.db), daemon=True).start()
+                    s.settimeout(SOCKET_TIMEOUT_SECONDS)
+                    self._spawn_handler(_handle_telnet, s, a)
                 except socket.timeout: continue
         self.thread = threading.Thread(target=loop, daemon=True)
         self.thread.start()
@@ -539,7 +651,8 @@ class NCService(Service):
             while self.running:
                 try:
                     s, a = self.sock.accept()
-                    threading.Thread(target=_handle_nc, args=(s, a, self.port, self.logger, self.db), daemon=True).start()
+                    s.settimeout(SOCKET_TIMEOUT_SECONDS)
+                    self._spawn_handler(_handle_nc, s, a)
                 except socket.timeout: continue
         self.thread = threading.Thread(target=loop, daemon=True)
         self.thread.start()

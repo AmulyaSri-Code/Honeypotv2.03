@@ -1,25 +1,30 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Set working directory
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-# Install system dependencies if required (e.g. for ML libraries or compilation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system honeypot \
+    && useradd --system --gid honeypot --home-dir /app --shell /usr/sbin/nologin honeypot
 
-# Copy the requirements file into the container
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project
-COPY . .
+COPY --chown=honeypot:honeypot . .
+RUN touch honeypot.db honeypot.log honeypot_out.log \
+    && chown honeypot:honeypot honeypot.db honeypot.log honeypot_out.log
 
-# Expose required ports
-# SSH (2222), FTP (2121), HTTP (8080), Telnet (2323), NC (4444), Dashboard API (5050)
+USER honeypot
+
 EXPOSE 2222 2121 8080 2323 4444 5050
 
-# Run the honeypot
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/api/health', timeout=3)"
+
 CMD ["python", "main.py"]

@@ -1,3 +1,4 @@
+import os
 import socket
 from api import app, start_services, bootstrap_admin
 from app_meta import APP_NAME, APP_VERSION
@@ -27,7 +28,9 @@ def main():
     print(f"  Network Access: http://{local_ip}:5050")
     print("="*50 + "\n")
     
-    app.run(host="0.0.0.0", port=5050, debug=False, use_reloader=False)
+    bind_host = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0")
+    dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
+    app.run(host=bind_host, port=dashboard_port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
     main()

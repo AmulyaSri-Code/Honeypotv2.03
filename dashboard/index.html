@@ -133,7 +133,7 @@
 
     /* Grid Columns */
     .col-left { grid-column: 1; grid-row: 1 / 3; display: grid; grid-template-rows: auto auto 1fr; gap: 1.5rem; }
-    .col-right { grid-column: 3; grid-row: 1 / 3; display: grid; grid-template-rows: 2.5fr 1fr; gap: 1.5rem; }
+    .col-right { grid-column: 3; grid-row: 1 / 3; display: grid; grid-template-rows: 1.2fr 0.9fr 0.9fr 0.9fr; gap: 1.5rem; }
     .col-center-map { grid-column: 2; grid-row: 1; border-radius: 16px; overflow: hidden; border: 1px solid var(--panel-border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); position: relative;}
     .col-center-feed { grid-column: 2; grid-row: 2; }
 
@@ -255,6 +255,44 @@
       box-shadow: 0 -4px 15px rgba(6, 182, 212, 0.3);
     }
     .bar-lbl { font-size: 0.75rem; font-weight: 600; color: var(--text-main); text-transform: uppercase; margin-top: 5px; }
+
+    /* Threat command center */
+    .risk-card {
+      display: grid; grid-template-columns: 110px 1fr; gap: 1rem; align-items: center;
+      padding: 1rem; border: 1px solid rgba(194, 239, 78, 0.18); border-radius: 14px;
+      background: linear-gradient(135deg, rgba(194,239,78,0.10), rgba(106,95,193,0.08));
+    }
+    .risk-orb {
+      width: 96px; height: 96px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+      font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; color: var(--text-bright);
+      background: conic-gradient(var(--accent-rose) var(--risk, 0%), rgba(255,255,255,0.08) 0);
+      box-shadow: 0 0 28px rgba(244,63,94,0.20), inset 0 0 18px rgba(0,0,0,0.45);
+    }
+    .risk-copy strong { display:block; color:var(--text-bright); font-size:1rem; text-transform:uppercase; letter-spacing:0.5px; }
+    .risk-copy span { color:var(--text-main); font-size:0.82rem; line-height:1.45; }
+    .mini-list { display:flex; flex-direction:column; gap:0.6rem; }
+    .mini-row { display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:0.7rem 0.8rem; border-radius:10px; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.06); }
+    .mini-row b { color:var(--text-bright); font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mini-row span { color:var(--accent-cyan); font-family:var(--font-mono); font-size:0.78rem; white-space:nowrap; }
+    .deploy-checks { display:flex; flex-direction:column; gap:0.55rem; margin-top:1rem; }
+    .deploy-check { display:grid; grid-template-columns:70px 1fr; gap:0.6rem; padding:0.65rem; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); }
+    .deploy-check .status { font-family:var(--font-mono); font-size:0.72rem; font-weight:700; text-transform:uppercase; }
+    .deploy-check.pass .status { color:var(--accent-emerald); }
+    .deploy-check.warn .status { color:var(--accent-amber); }
+    .deploy-check .msg { font-size:0.76rem; color:var(--text-main); line-height:1.35; }
+    .timeline-bars { display:flex; align-items:flex-end; gap:6px; height:120px; padding-top:1rem; }
+    .timeline-bar { flex:1; min-width:8px; border-radius:5px 5px 0 0; background:linear-gradient(to top, rgba(194,239,78,0.25), var(--accent-cyan)); box-shadow:0 -4px 14px rgba(6,182,212,0.18); }
+    .alert-grid { display:flex; flex-direction:column; gap:0.55rem; }
+    .alert-provider { display:flex; justify-content:space-between; align-items:center; padding:0.7rem 0.8rem; border-radius:10px; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.06); }
+    .alert-provider b { color:var(--text-bright); text-transform:uppercase; font-size:0.78rem; letter-spacing:0.5px; }
+    .alert-pill { font-family:var(--font-mono); font-size:0.72rem; font-weight:700; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); }
+    .alert-pill.on { color:var(--accent-emerald); background:rgba(16,185,129,0.10); }
+    .alert-pill.off { color:var(--accent-amber); background:rgba(245,158,11,0.10); }
+    .alert-actions { display:flex; gap:0.6rem; align-items:center; margin-top:0.8rem; }
+    .alert-btn { border:1px solid rgba(6,182,212,0.35); background:rgba(6,182,212,0.12); color:var(--text-bright); border-radius:9px; padding:0.65rem 0.8rem; cursor:pointer; font-weight:700; font-size:0.78rem; }
+    .alert-btn:disabled { opacity:0.55; cursor:not-allowed; }
+    .alert-note { font-size:0.76rem; color:var(--text-main); line-height:1.35; }
+
   </style>
 </head>
 <body>
@@ -303,6 +341,26 @@
               <span class="stat-val" id="stat-ips">0</span>
             </div>
           </div>
+        </div>
+      </div>
+
+
+
+      <!-- Panel: Threat Command Center -->
+      <div class="panel">
+        <div class="panel-header">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Threat Command Center
+        </div>
+        <div class="panel-content">
+          <div class="risk-card">
+            <div class="risk-orb" id="risk-orb" style="--risk:0%">0</div>
+            <div class="risk-copy">
+              <strong id="risk-level">Quiet</strong>
+              <span id="risk-copy">Awaiting enriched threat intelligence from active honeypot services.</span>
+            </div>
+          </div>
+          <div class="deploy-checks" id="deploy-checks"></div>
         </div>
       </div>
 
@@ -386,6 +444,38 @@
         </div>
       </div>
 
+
+
+      <!-- Top Attackers -->
+      <div class="panel">
+        <div class="panel-header">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Top Attackers
+        </div>
+        <div class="panel-content">
+          <div class="mini-list" id="top-attackers">
+            <div style="font-size:0.85rem;color:var(--text-main);">Profiling hostile sources...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Integrations -->
+      <div class="panel">
+        <div class="panel-header">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          Alert Channels
+        </div>
+        <div class="panel-content">
+          <div class="alert-grid" id="alert-channels">
+            <div style="font-size:0.85rem;color:var(--text-main);">Checking Slack, Telegram, and Discord connectivity...</div>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn" id="alert-test-btn" onclick="sendTestAlert(this)">Send Test</button>
+            <span class="alert-note" id="alert-test-result">Uses configured env secrets only.</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Attack Volume Chart -->
       <div class="panel">
         <div class="panel-header">
@@ -415,13 +505,55 @@
     const content = document.getElementById('debug-content');
     if (log && content) {
         log.classList.add('active');
-        content.innerHTML += `[ERR] ${msg} @ ${line}<br>`;
+        const row = document.createElement('div');
+        row.textContent = `[ERR] ${msg} @ ${line}`;
+        content.appendChild(row);
     }
   };
 
+  function authToken() {
+    return sessionStorage.getItem('honeypot_access_token') || '';
+  }
+
+  function authHeaders() {
+    const token = authToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
+  async function promptLogin() {
+    const username = window.prompt('Honeypot dashboard username');
+    if (!username) return false;
+    const password = window.prompt('Honeypot dashboard password');
+    if (!password) return false;
+    const res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!res.ok) {
+      window.alert('Login failed. Check username/password.');
+      return false;
+    }
+    const data = await res.json();
+    if (!data.access_token) return false;
+    sessionStorage.setItem('honeypot_access_token', data.access_token);
+    return true;
+  }
+
   async function fetchJSON(path, options = {}) {
     try {
-      const res = await fetch(API + path, options);
+      const mergedOptions = {
+        ...options,
+        headers: { ...authHeaders(), ...(options.headers || {}) }
+      };
+      let res = await fetch(API + path, mergedOptions);
+      if (res.status === 401 && !path.startsWith('/api/auth/') && await promptLogin()) {
+        res = await fetch(API + path, {
+          ...options,
+          headers: { ...authHeaders(), ...(options.headers || {}) }
+        });
+      }
+      if (!res.ok) return null;
       return await res.json();
     } catch (err) { return null; }
   }
@@ -453,6 +585,90 @@
     if(cat.includes('brute') || cat.includes('priv')) return { label: 'HIGH', cls: 'tag-high' };
     if(cat.includes('recon')) return { label: 'MID', cls: 'tag-mid' };
     return { label: 'BENIGN', cls: 'tag-low' }; 
+  }
+
+
+
+  function riskNarrative(level, totals) {
+    const events = totals?.commands || 0;
+    const malware = totals?.malware_events || 0;
+    const unique = totals?.unique_ips || 0;
+    if(level === 'critical') return `Critical exposure: ${events} events, ${malware} malware-classified payloads, ${unique} unique sources. Prioritize containment and SIEM review.`;
+    if(level === 'high') return `High hostile activity: ${events} captured events across ${unique} sources. Review top attackers and rotate exposed decoys if needed.`;
+    if(level === 'elevated') return `Elevated activity detected. The honeypot is collecting useful signals; keep isolation and outbound controls active.`;
+    if(level === 'guarded') return `Low-volume activity detected. Continue monitoring and validate deployment hardening checks.`;
+    return 'No hostile activity in the current dataset. Services are ready for controlled lab traffic.';
+  }
+
+  async function loadThreatIntel() {
+    const summary = await fetchJSON('/api/threats/summary');
+    if (!summary) return;
+
+    const risk = Math.max(0, Math.min(100, summary.risk_score || 0));
+    const level = escapeHtml(summary.risk_level || 'quiet').toUpperCase();
+    const orb = document.getElementById('risk-orb');
+    orb.textContent = risk;
+    orb.style.setProperty('--risk', `${risk}%`);
+    document.getElementById('risk-level').textContent = `${level} RISK`;
+    document.getElementById('risk-copy').textContent = riskNarrative(summary.risk_level, summary.totals);
+
+    const deployTarget = document.getElementById('deploy-checks');
+    deployTarget.innerHTML = (summary.deployment?.checks || []).map(check => `
+      <div class="deploy-check ${escapeHtml(check.status)}">
+        <div class="status">${escapeHtml(check.status)}</div>
+        <div class="msg"><b style="color:var(--text-bright);">${escapeHtml(check.label)}</b><br>${escapeHtml(check.message)}</div>
+      </div>
+    `).join('');
+
+    const attackers = summary.top_attackers || [];
+    document.getElementById('top-attackers').innerHTML = attackers.length ? attackers.map(a => {
+        const eventWord = Number(a.events || 0) === 1 ? 'event' : 'events';
+        return `
+          <div class="mini-row">
+            <b class="text-mono">${escapeHtml(a.ip)}</b>
+            <span>${Number(a.events || 0).toLocaleString()} ${eventWord}</span>
+          </div>
+        `;
+    }).join('') : '<div style="font-size:0.85rem;color:var(--text-main);">No hostile sources captured yet.</div>';
+  }
+
+  async function loadAlertStatus() {
+    const status = await fetchJSON('/api/alerts/status');
+    if (!status) return;
+    const providers = status.providers || {};
+    const target = document.getElementById('alert-channels');
+    const rows = ['slack', 'telegram', 'discord'].map(name => {
+      const configured = Boolean(providers[name]?.configured);
+      return `
+        <div class="alert-provider">
+          <b>${escapeHtml(name)}</b>
+          <span class="alert-pill ${configured ? 'on' : 'off'}">${configured ? 'configured' : 'missing'}</span>
+        </div>
+      `;
+    }).join('');
+    const enabled = status.enabled ? 'enabled' : 'disabled';
+    const minimum = escapeHtml(status.min_severity || 'high');
+    target.innerHTML = rows + `<div class="alert-note">Alert engine: <b style="color:var(--text-bright);">${enabled}</b> / threshold: ${minimum.toUpperCase()}</div>`;
+  }
+
+  async function sendTestAlert(btn) {
+    const result = document.getElementById('alert-test-result');
+    btn.disabled = true;
+    result.textContent = 'Sending test alert...';
+    const res = await fetchJSON('/api/alerts/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attack_category: 'Brute Force', service: 'dashboard' })
+    });
+    if (res && res.success) {
+      result.textContent = 'Test alert sent to at least one configured provider.';
+    } else if (res && res.result && res.result.reason) {
+      result.textContent = `Not sent: ${res.result.reason}. Check env alert settings.`;
+    } else {
+      result.textContent = 'Test failed. Admin token or provider config may be missing.';
+    }
+    btn.disabled = false;
+    loadAlertStatus();
   }
 
   async function loadStats() {
@@ -591,7 +807,7 @@
       const pulseIcon = L.divIcon({ html: pulseHtml, className: '', iconSize: [14,14], iconAnchor: [7,7] });
 
       connections.slice(0, 100).forEach(c => {
-         if(c.lat && c.lon) {
+         if(c.lat !== null && c.lon !== null && c.lat !== undefined && c.lon !== undefined) {
              let marker = L.marker([c.lat, c.lon], { icon: pulseIcon }).addTo(telemetryMap);
              const safeIp = escapeHtml(c.ip || '');
              const safeSvc = escapeHtml(c.service || '').toUpperCase();
@@ -690,7 +906,7 @@
   initMap();
   
   async function refreshAll() {
-      const tasks = [loadStats(), loadFeed(), loadConnections()];
+      const tasks = [loadStats(), loadThreatIntel(), loadFeed(), loadConnections(), loadAlertStatus()];
       if(document.activeElement?.type !== 'checkbox') tasks.push(loadServices());
       await Promise.all(tasks);
   }

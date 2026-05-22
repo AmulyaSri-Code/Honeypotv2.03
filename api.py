@@ -9,8 +9,13 @@ from functools import wraps
 from datetime import datetime, timezone
 from flask import Flask, jsonify, send_from_directory, request, Response
 
+from env_loader import load_env_file
+
+load_env_file()
+
 from honeypot import Logger, HoneypotDatabase, SSHService, FTPService, HTTPService, TelnetService, NCService
 from app_meta import APP_NAME, APP_TAGLINE, APP_VERSION
+from notifications import provider_status, send_alert, severity_for_category
 from security import (
     hash_password,
     verify_password,
@@ -46,10 +51,24 @@ def utc_now():
 
 
 def client_ip():
+    remote_addr = request.remote_addr or "unknown"
+    trusted_proxies = {
+        ip.strip()
+        for ip in os.environ.get("HONEYPOT_TRUSTED_PROXIES", "").split(",")
+        if ip.strip()
+    }
     xff = request.headers.get("X-Forwarded-For", "")
-    if xff:
+    if xff and remote_addr in trusted_proxies:
         return xff.split(",")[0].strip()
-    return request.remote_addr or "unknown"
+    return remote_addr
+
+
+def parse_limit(value, default=100, minimum=1, maximum=500):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(parsed, maximum))
 
 
 def rate_limited(ip):
@@ -318,7 +337,7 @@ def auth_me():
 
 
 @app.route("/api/users", methods=["GET"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def list_users():
     conn = get_db()
     rows = conn.execute(
@@ -333,7 +352,7 @@ def list_users():
 
 
 @app.route("/api/users", methods=["POST"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def create_user():
     body = request.get_json(silent=True) or {}
     username = (body.get("username") or "").strip()
@@ -361,7 +380,7 @@ def create_user():
 
 
 @app.route("/api/users/<username>/password", methods=["POST"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def rotate_user_password(username):
     body = request.get_json(silent=True) or {}
     new_password = body.get("password") or ""
@@ -381,7 +400,7 @@ def rotate_user_password(username):
 
 
 @app.route("/api/users/<username>", methods=["DELETE"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def delete_user(username):
     actor = request.user.get("username", "unknown")
     if actor == username:
@@ -399,7 +418,7 @@ def delete_user(username):
 
 
 @app.route("/api/keys", methods=["GET"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def list_api_keys():
     conn = get_db()
     rows = conn.execute(
@@ -414,7 +433,7 @@ def list_api_keys():
 
 
 @app.route("/api/keys", methods=["POST"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def create_api_key():
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
@@ -440,7 +459,7 @@ def create_api_key():
 
 
 @app.route("/api/keys/<int:key_id>/revoke", methods=["POST"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def revoke_api_key(key_id):
     conn = get_db()
     row = conn.execute("SELECT id, name FROM api_keys WHERE id=?", (key_id,)).fetchone()
@@ -453,7 +472,152 @@ def revoke_api_key(key_id):
     log_audit(request.user.get("username", "unknown"), "apikey.revoke", target=row["name"])
     return jsonify({"success": True, "id": key_id, "name": row["name"]})
 
+def _risk_level(score):
+    if score >= 80:
+        return "critical"
+    if score >= 60:
+        return "high"
+    if score >= 35:
+        return "elevated"
+    if score > 0:
+        return "guarded"
+    return "quiet"
+
+
+def _deployment_checks():
+    auth_secret = os.environ.get("HONEYPOT_AUTH_SECRET", "change-me-in-production")
+    admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS", "secret")
+    public_bind = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0") == "0.0.0.0"
+    alert_status = provider_status()
+    alert_configured = any(p["configured"] for p in alert_status["providers"].values())
+    return [
+        {
+            "id": "auth_secret",
+            "label": "Authentication signing secret",
+            "status": "warn" if auth_secret in ("change-me-in-production", "") else "pass",
+            "message": "Set HONEYPOT_AUTH_SECRET to a long random value before deployment." if auth_secret in ("change-me-in-production", "") else "Custom token signing secret configured.",
+        },
+        {
+            "id": "admin_password",
+            "label": "Admin bootstrap password",
+            "status": "warn" if admin_pass in ("secret", "change_this_now", "") else "pass",
+            "message": "Replace the default admin password before exposing the dashboard." if admin_pass in ("secret", "change_this_now", "") else "Admin password is not using the known default.",
+        },
+        {
+            "id": "bind_host",
+            "label": "Dashboard bind host",
+            "status": "warn" if public_bind else "pass",
+            "message": "Dashboard is configured for all interfaces; protect it with firewall/VPN/reverse proxy auth." if public_bind else "Dashboard bind host is restricted.",
+        },
+        {
+            "id": "alert_channels",
+            "label": "Outbound alert channels",
+            "status": "pass" if alert_status["enabled"] and alert_configured else "warn",
+            "message": "Slack/Telegram/Discord alerting has at least one configured provider." if alert_status["enabled"] and alert_configured else "Set HONEYPOT_ALERTS_ENABLED=true and configure Slack, Telegram, or Discord secrets for live alert delivery.",
+        },
+    ]
+
+
+@app.route("/api/threats/summary")
+@requires_token()
+def threat_summary():
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM connections")
+    total_connections = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM commands")
+    total_commands = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(DISTINCT ip) FROM connections")
+    unique_ips = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM commands WHERE LOWER(COALESCE(attack_category, '')) LIKE '%malware%'")
+    malware_events = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM commands WHERE LOWER(COALESCE(attack_category, '')) LIKE '%privilege%'")
+    privilege_events = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM commands WHERE LOWER(COALESCE(attack_category, '')) LIKE '%brute%'")
+    brute_force_events = cur.fetchone()[0]
+
+    cur.execute(
+        """
+        SELECT ip, COUNT(*) AS events, MAX(timestamp) AS last_seen
+        FROM commands
+        WHERE ip IS NOT NULL AND ip != ''
+        GROUP BY ip
+        ORDER BY events DESC, last_seen DESC
+        LIMIT 8
+        """
+    )
+    top_attackers = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT COALESCE(NULLIF(country, ''), 'Unknown') AS country, COUNT(*) AS connections
+        FROM connections
+        GROUP BY COALESCE(NULLIF(country, ''), 'Unknown')
+        ORDER BY connections DESC
+        LIMIT 8
+        """
+    )
+    top_countries = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT id, ip, service, command, timestamp, attack_category
+        FROM commands
+        WHERE LOWER(COALESCE(attack_category, '')) LIKE '%malware%'
+           OR LOWER(COALESCE(attack_category, '')) LIKE '%privilege%'
+        ORDER BY id DESC
+        LIMIT 10
+        """
+    )
+    recent_critical = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT substr(timestamp, 1, 13) || ':00:00Z' AS bucket, COUNT(*) AS events
+        FROM commands
+        WHERE timestamp IS NOT NULL AND timestamp != ''
+        GROUP BY bucket
+        ORDER BY bucket DESC
+        LIMIT 12
+        """
+    )
+    timeline = [dict(r) for r in reversed(cur.fetchall())]
+    conn.close()
+
+    risk_score = min(100, int(
+        (malware_events * 8) +
+        (privilege_events * 6) +
+        (brute_force_events * 3) +
+        (unique_ips * 1.5) +
+        min(total_commands, 500) * 0.05
+    ))
+    checks = _deployment_checks()
+
+    return jsonify({
+        "risk_score": risk_score,
+        "risk_level": _risk_level(risk_score),
+        "totals": {
+            "connections": total_connections,
+            "commands": total_commands,
+            "unique_ips": unique_ips,
+            "malware_events": malware_events,
+            "privilege_events": privilege_events,
+            "brute_force_events": brute_force_events,
+        },
+        "top_attackers": top_attackers,
+        "top_countries": top_countries,
+        "recent_critical": recent_critical,
+        "timeline": timeline,
+        "deployment": {
+            "ready": all(c["status"] == "pass" for c in checks),
+            "checks": checks,
+        },
+    })
+
+
 @app.route("/api/stats")
+@requires_token()
 def stats():
     conn = get_db()
     cur = conn.cursor()
@@ -483,9 +647,9 @@ def stats():
     })
 
 @app.route("/api/connections")
+@requires_token()
 def connections():
-    try: req_limit = min(int(request.args.get("limit", 100)), 500)
-    except ValueError: req_limit = 100
+    req_limit = parse_limit(request.args.get("limit", 100))
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -497,9 +661,9 @@ def connections():
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/commands")
+@requires_token()
 def commands():
-    try: limit = min(int(request.args.get("limit", 100)), 500)
-    except ValueError: limit = 100
+    limit = parse_limit(request.args.get("limit", 100))
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -511,6 +675,7 @@ def commands():
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/attacks")
+@requires_token()
 def attacks():
     conn = get_db()
     cur = conn.cursor()
@@ -523,7 +688,35 @@ def attacks():
     conn.close()
     return jsonify([{"category": r[0], "count": r[1]} for r in rows])
 
+@app.route("/api/alerts/status")
+@requires_token()
+def alerts_status():
+    return jsonify(provider_status())
+
+
+@app.route("/api/alerts/test", methods=["POST"])
+@requires_token(role="admin")
+def alerts_test():
+    payload = request.get_json(silent=True) or {}
+    category = payload.get("attack_category") or "Brute Force"
+    event = {
+        "event_type": "dashboard_test",
+        "ip": client_ip(),
+        "service": payload.get("service") or "dashboard",
+        "command": payload.get("command") or "operator-triggered dashboard alert connectivity test",
+        "timestamp": utc_now(),
+        "attack_category": category,
+        "severity": payload.get("severity") or severity_for_category(category),
+    }
+    result = send_alert(event)
+    actor = request.user.get("username", "unknown")
+    log_audit(actor, "alerts.test", target="notifications", details=str(result))
+    status_code = 200 if result.get("sent") else 503
+    return jsonify({"success": bool(result.get("sent")), "sent": bool(result.get("sent")), "result": result}), status_code
+
+
 @app.route("/api/services")
+@requires_token()
 def get_services():
     status = {}
     for name, svc in services.items():
@@ -531,7 +724,7 @@ def get_services():
     return jsonify(status)
 
 @app.route("/api/services/<name>/toggle", methods=["POST"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def toggle_service(name):
     if name not in services:
         return jsonify({"error": "Service not found"}), 404
@@ -549,12 +742,9 @@ def toggle_service(name):
 
 
 @app.route("/api/audit", methods=["GET"])
-@requires_token(role="admin", allow_basic_fallback=True)
+@requires_token(role="admin")
 def audit_logs():
-    try:
-        limit = min(int(request.args.get("limit", 100)), 500)
-    except ValueError:
-        limit = 100
+    limit = parse_limit(request.args.get("limit", 100))
     conn = get_db()
     rows = conn.execute(
         """
@@ -576,4 +766,6 @@ def start_services():
 if __name__ == "__main__":
     bootstrap_admin()
     start_services()
-    app.run(host="0.0.0.0", port=5050, debug=False)
+    bind_host = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0")
+    dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
+    app.run(host=bind_host, port=dashboard_port, debug=False)
