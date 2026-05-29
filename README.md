@@ -11,7 +11,7 @@ Important: HoneyPot v3 is for defensive monitoring only. Deploy it only on syste
 - Premium SOC dashboard with live feed, attack map, risk scoring, service matrix, alert status, and analyst workbench
 - SQLite event storage with WAL mode for safer concurrent reads/writes
 - ML-assisted command classification using TF-IDF and scikit-learn
-- Optional Slack, Discord, and Telegram alert delivery
+- Optional Slack, Discord, Telegram, and n8n automation alert delivery
 - Safer local defaults: dashboard and sensors bind to loopback unless explicitly configured otherwise
 - Docker Compose support for local deployment and optional security ecosystem services
 
@@ -107,6 +107,7 @@ HONEYPOT_SENSOR_BIND_HOST=127.0.0.1
 HONEYPOT_DASHBOARD_PORT=5050
 HONEYPOT_ALERTS_ENABLED=false
 HONEYPOT_ALERT_MIN_SEVERITY=high
+N8N_WEBHOOK_URL=
 ```
 
 Security guidance:
@@ -175,8 +176,60 @@ Supported providers:
 - Slack webhook
 - Discord webhook
 - Telegram bot token and chat ID
+- n8n webhook for SOC automation workflows
 
 Provider status endpoints expose safe booleans/metadata only; secret values are never returned by the API.
+
+### n8n Automation
+
+HoneyPot v3 can POST structured alert payloads to an n8n webhook. This is the recommended way to build SOC-style workflows without adding more logic to the honeypot runtime.
+
+Example automation ideas:
+
+- Route critical malware events to Slack, Telegram, Discord, or email
+- Create Jira, Linear, GitHub, or ServiceNow incident tickets
+- Enrich attacker IPs through reputation APIs before notifying analysts
+- Store high-risk events in Sheets, Airtable, Notion, or a case-management database
+- Generate daily/weekly security summaries
+
+Start local n8n with Docker Compose:
+
+```bash
+docker-compose --profile automation up -d n8n
+```
+
+Open n8n locally:
+
+```text
+http://localhost:5678
+```
+
+Import the sample workflow:
+
+```text
+n8n-workflows/honeypot-v3-critical-alert.json
+```
+
+The sample workflow exposes this webhook path:
+
+```text
+/webhook/honeypot-v3-alert
+```
+
+Set HoneyPot v3 to send alerts to it:
+
+```bash
+HONEYPOT_ALERTS_ENABLED=true
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/honeypot-v3-alert
+```
+
+For Docker-based HoneyPot-to-n8n delivery on the same compose network, use the n8n service name:
+
+```bash
+N8N_WEBHOOK_URL=http://n8n:5678/webhook/honeypot-v3-alert
+```
+
+The n8n payload includes `source`, `summary`, `severity`, `sent_at`, and the original HoneyPot event under `event`.
 
 ## Docker
 
@@ -191,6 +244,12 @@ docker-compose --profile ecosystem up --build
 ```
 
 Included ecosystem services can include Elastic Stack, Elasticvue, CyberChef, SpiderFoot, Suricata, and Autoheal depending on the compose profile.
+
+Optional automation profile:
+
+```bash
+docker-compose --profile automation up -d n8n
+```
 
 ## Testing and Quality Checks
 

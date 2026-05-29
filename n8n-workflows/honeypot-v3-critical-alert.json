@@ -1,0 +1,161 @@
+{
+  "name": "HoneyPot v3 - Critical Alert Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "honeypot-v3-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "honeypot-webhook",
+      "name": "HoneyPot v3 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        0
+      ],
+      "webhookId": "honeypot-v3-alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.event.severity || $json.severity}}",
+              "operation": "equals",
+              "value2": "critical"
+            }
+          ]
+        }
+      },
+      "id": "critical-filter",
+      "name": "Critical severity only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "title",
+              "value": "=🚨 {{$json.source || 'HoneyPot v3'}} critical alert"
+            },
+            {
+              "name": "summary",
+              "value": "={{$json.summary}}"
+            },
+            {
+              "name": "source_ip",
+              "value": "={{$json.event.ip}}"
+            },
+            {
+              "name": "service",
+              "value": "={{$json.event.service}}"
+            },
+            {
+              "name": "attack_category",
+              "value": "={{$json.event.attack_category}}"
+            },
+            {
+              "name": "payload",
+              "value": "={{$json.event.command}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-incident",
+      "name": "Format incident",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -90
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"accepted\":true,\"workflow\":\"HoneyPot v3 - Critical Alert Router\",\"source_ip\":\"{{$json.source_ip}}\"}",
+        "options": {}
+      },
+      "id": "respond-critical",
+      "name": "Respond accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -90
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"accepted\":false,\"reason\":\"below_critical_threshold\"}",
+        "options": {}
+      },
+      "id": "respond-ignored",
+      "name": "Respond ignored",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "HoneyPot v3 Webhook": {
+      "main": [
+        [
+          {
+            "node": "Critical severity only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical severity only": {
+      "main": [
+        [
+          {
+            "node": "Format incident",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond ignored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format incident": {
+      "main": [
+        [
+          {
+            "node": "Respond accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "honeypot-v3-template"
+}

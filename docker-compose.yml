@@ -3,6 +3,9 @@ services:
   honeypot:
     build: .
     container_name: honeypot_nexus
+    env_file:
+      - path: .env
+        required: false
     ports:
       - "2222:2222"   # SSH
       - "2121:2121"   # FTP
@@ -115,5 +118,24 @@ services:
     restart: unless-stopped
     profiles: ["ecosystem"]
 
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: honeypot_n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-replace_with_a_32_plus_character_secret}
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    profiles: ["automation"]
+
 volumes:
   elastic_data:
+  n8n_data:
