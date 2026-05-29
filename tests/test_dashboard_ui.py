@@ -102,6 +102,10 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("const ok=!!(r?.success||r?.sent||r?.result?.sent)", self.html)
         self.assertIn("Not sent:", self.html)
 
+    def test_alert_channel_panel_includes_n8n_automation(self):
+        self.assertIn("Slack · Telegram · Discord · n8n", self.html)
+        self.assertIn("'slack','telegram','discord','n8n'", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
