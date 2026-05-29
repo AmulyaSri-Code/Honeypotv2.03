@@ -227,11 +227,22 @@ Open n8n locally:
 http://localhost:5678
 ```
 
-Import the sample workflow:
+Import the sample workflow through the n8n UI:
 
 ```text
 n8n-workflows/honeypot-v3-critical-alert.json
 ```
+
+Or import it with the n8n CLI inside the Docker container:
+
+```bash
+docker cp n8n-workflows/honeypot-v3-critical-alert.json honeypot_n8n:/tmp/honeypot-v3-critical-alert.json
+docker exec honeypot_n8n n8n import:workflow --input=/tmp/honeypot-v3-critical-alert.json
+docker exec honeypot_n8n n8n update:workflow --id=honeypot-v3-critical-alert-router --active=true
+docker compose --profile automation restart n8n
+```
+
+The restart ensures n8n registers the production webhook after activation.
 
 The sample workflow exposes this webhook path:
 

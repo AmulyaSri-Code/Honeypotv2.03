@@ -1,4 +1,5 @@
 {
+  "id": "honeypot-v3-critical-alert-router",
   "name": "HoneyPot v3 - Critical Alert Router",
   "nodes": [
     {
