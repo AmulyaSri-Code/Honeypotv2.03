@@ -34,7 +34,11 @@ _login_attempts = {}
 _request_attempts = {}
 
 def check_auth(username, password):
-    return username == os.environ.get("DASHBOARD_USER", "admin") and password == os.environ.get("DASHBOARD_PASS", "secret")
+    expected_user = os.environ.get("DASHBOARD_USER")
+    expected_pass = os.environ.get("DASHBOARD_PASS")
+    if not expected_user or not expected_pass:
+        return False
+    return username == expected_user and password == expected_pass
 
 def requires_auth(f):
     @wraps(f)
@@ -230,13 +234,25 @@ def apply_security_headers(resp):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https://*.basemaps.cartocdn.com; "
+        "connect-src 'self' https://*.basemaps.cartocdn.com; "
+        "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    )
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
 
 def bootstrap_admin():
+    env_user_set = "HONEYPOT_ADMIN_USER" in os.environ
+    env_pass_set = "HONEYPOT_ADMIN_PASS" in os.environ
     username = os.environ.get("HONEYPOT_ADMIN_USER", "admin")
-    password = os.environ.get("HONEYPOT_ADMIN_PASS", "secret")
+    password = os.environ.get("HONEYPOT_ADMIN_PASS", "admin")
     conn = get_db()
     row = conn.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
     if not row:
@@ -246,6 +262,13 @@ def bootstrap_admin():
         )
         conn.commit()
         log.info("Bootstrapped admin account from environment.")
+    elif not env_user_set and not env_pass_set and username == "admin":
+        conn.execute(
+            "UPDATE users SET password_hash=? WHERE id=?",
+            (hash_password("admin"), row["id"]),
+        )
+        conn.commit()
+        log.info("Refreshed built-in local admin account to default credentials.")
     conn.close()
 
 @app.route("/")
@@ -487,7 +510,7 @@ def _risk_level(score):
 def _deployment_checks():
     auth_secret = os.environ.get("HONEYPOT_AUTH_SECRET", "change-me-in-production")
     admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS", "secret")
-    public_bind = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0") == "0.0.0.0"
+    public_bind = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1") == "0.0.0.0"
     alert_status = provider_status()
     alert_configured = any(p["configured"] for p in alert_status["providers"].values())
     return [
@@ -766,6 +789,6 @@ def start_services():
 if __name__ == "__main__":
     bootstrap_admin()
     start_services()
-    bind_host = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0")
+    bind_host = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1")
     dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
     app.run(host=bind_host, port=dashboard_port, debug=False)

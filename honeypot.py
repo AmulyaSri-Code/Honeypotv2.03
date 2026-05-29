@@ -424,7 +424,7 @@ if paramiko:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.settimeout(300)
-            self.sock.bind(("0.0.0.0", self.port))
+            self.sock.bind((os.environ.get("HONEYPOT_SENSOR_BIND_HOST", "127.0.0.1"), self.port))
             self.sock.listen(50)
             self.running = True
             self.thread = threading.Thread(target=self._loop)
@@ -487,7 +487,7 @@ class FTPService(Service):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(300)
-        self.sock.bind(("0.0.0.0", self.port))
+        self.sock.bind((os.environ.get("HONEYPOT_SENSOR_BIND_HOST", "127.0.0.1"), self.port))
         self.sock.listen(50)
         self.running = True
         def loop():
@@ -532,7 +532,7 @@ class HTTPService(Service):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(300)
-        self.sock.bind(("0.0.0.0", self.port))
+        self.sock.bind((os.environ.get("HONEYPOT_SENSOR_BIND_HOST", "127.0.0.1"), self.port))
         self.sock.listen(50)
         self.running = True
         def loop():
@@ -595,7 +595,7 @@ class TelnetService(Service):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(300)
-        self.sock.bind(("0.0.0.0", self.port))
+        self.sock.bind((os.environ.get("HONEYPOT_SENSOR_BIND_HOST", "127.0.0.1"), self.port))
         self.sock.listen(50)
         self.running = True
         def loop():
@@ -644,7 +644,7 @@ class NCService(Service):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(300)
-        self.sock.bind(("0.0.0.0", self.port))
+        self.sock.bind((os.environ.get("HONEYPOT_SENSOR_BIND_HOST", "127.0.0.1"), self.port))
         self.sock.listen(50)
         self.running = True
         def loop():
@@ -694,7 +694,9 @@ def main():
     print("="*50 + "\n")
 
     # Run dashboard in background thread so signal handling works normally
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5050, debug=False, use_reloader=False), daemon=True).start()
+    dashboard_bind_host = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1")
+    dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
+    threading.Thread(target=lambda: app.run(host=dashboard_bind_host, port=dashboard_port, debug=False, use_reloader=False), daemon=True).start()
 
     def stop(*_):
         log.info("Shutting down...")

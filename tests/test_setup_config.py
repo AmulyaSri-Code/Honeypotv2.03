@@ -42,10 +42,18 @@ class SetupConfigTests(unittest.TestCase):
         self.assertTrue(config["HONEYPOT_AUTH_SECRET"])
         self.assertNotEqual(config["HONEYPOT_AUTH_SECRET"], "change-me-in-production")
 
+    def test_default_local_credentials_can_be_admin_admin(self):
+        setup = load_setup_module()
+
+        config = setup.build_env_config(admin_user="admin", admin_pass="admin")
+
+        self.assertEqual(config["HONEYPOT_ADMIN_USER"], "admin")
+        self.assertEqual(config["HONEYPOT_ADMIN_PASS"], "admin")
+
     def test_weak_or_default_admin_password_is_rejected(self):
         setup = load_setup_module()
 
-        for bad_password in ("secret", "password", "short"):
+        for bad_password in ("secret", "password", "123"):
             with self.subTest(bad_password=bad_password):
                 with self.assertRaises(ValueError):
                     setup.build_env_config(admin_user="admin", admin_pass=bad_password)

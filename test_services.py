@@ -6,7 +6,7 @@ import ftplib
 import time
 import argparse
 
-def test_ssh(host, port=2222):
+def probe_ssh(host, port=2222):
     print(f"[*] Testing SSH (Port {port})...")
     try:
         client = paramiko.SSHClient()
@@ -24,7 +24,7 @@ def test_ssh(host, port=2222):
     except Exception as e:
         print(f"    [-] SSH test failed: {e}")
 
-def test_ftp(host, port=2121):
+def probe_ftp(host, port=2121):
     print(f"[*] Testing FTP (Port {port})...")
     try:
         ftp = ftplib.FTP()
@@ -43,7 +43,7 @@ def test_ftp(host, port=2121):
     except Exception as e:
         print(f"    [-] FTP test failed: {e}")
 
-def test_http(host, port=8080):
+def probe_http(host, port=8080):
     print(f"[*] Testing HTTP (Port {port})...")
     url = f"http://{host}:{port}/wp-admin"
     try:
@@ -56,7 +56,7 @@ def test_http(host, port=8080):
     except Exception as e:
         print(f"    [-] HTTP test failed: {e}")
 
-def test_telnet(host, port=2323):
+def probe_telnet(host, port=2323):
     print(f"[*] Testing Telnet (Port {port})...")
     try:
         # Using raw socket to avoid dependency on deprecated telnetlib
@@ -85,7 +85,7 @@ def test_telnet(host, port=2323):
     except Exception as e:
         print(f"    [-] Telnet test failed: {e}")
 
-def test_nc(host, port=4444):
+def probe_nc(host, port=4444):
     print(f"[*] Testing NC / Raw Payload (Port {port})...")
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -110,15 +110,15 @@ def main():
     args = parser.parse_args()
     
     print(f"Starting test for Honeypot services on {args.host}...\n")
-    test_ssh(args.host)
+    probe_ssh(args.host)
     print("-" * 40)
-    test_ftp(args.host)
+    probe_ftp(args.host)
     print("-" * 40)
-    test_http(args.host)
+    probe_http(args.host)
     print("-" * 40)
-    test_telnet(args.host)
+    probe_telnet(args.host)
     print("-" * 40)
-    test_nc(args.host)
+    probe_nc(args.host)
     print("\nTests completed. Check the Honeypot dashboard to view logged connections!")
 
 if __name__ == "__main__":

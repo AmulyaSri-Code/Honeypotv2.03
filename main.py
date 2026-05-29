@@ -14,6 +14,14 @@ def get_local_ip():
     except OSError:
         return "127.0.0.1"
 
+def dashboard_bind_host():
+    return os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1")
+
+
+def dashboard_port():
+    return int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
+
+
 def main():
     bootstrap_admin()
     # Start all honeypot services by default
@@ -24,13 +32,16 @@ def main():
     print(f"{APP_NAME} DASHBOARD")
     print("="*50)
     print(f"  Version:        {APP_VERSION}")
-    print("  Local Access:   http://localhost:5050")
-    print(f"  Network Access: http://{local_ip}:5050")
+    bind_host = dashboard_bind_host()
+    port = dashboard_port()
+    print(f"  Local Access:   http://localhost:{port}")
+    if bind_host == "127.0.0.1":
+        print("  Network Access: disabled (loopback only)")
+    else:
+        print(f"  Network Access: http://{local_ip}:{port}")
     print("="*50 + "\n")
     
-    bind_host = os.environ.get("HONEYPOT_BIND_HOST", "0.0.0.0")
-    dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
-    app.run(host=bind_host, port=dashboard_port, debug=False, use_reloader=False)
+    app.run(host=bind_host, port=port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
     main()

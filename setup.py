@@ -30,7 +30,7 @@ DEFAULTS = {
     "FLASK_ENV": "production",
 }
 
-BAD_PASSWORDS = {"", "secret", "password", "admin", "admin123", "change_this_now"}
+BAD_PASSWORDS = {"", "secret", "password", "admin123", "change_this_now"}
 VALID_SEVERITIES = {"low", "medium", "mid", "high", "critical"}
 
 
@@ -43,8 +43,10 @@ def normalize_bool(value: object) -> str:
 def validate_admin_credentials(admin_user: str, admin_pass: str) -> None:
     if len(admin_user.strip()) < 3:
         raise ValueError("Admin username must be at least 3 characters.")
+    if admin_user.strip().lower() == "admin" and admin_pass == "admin":
+        return
     if admin_pass.strip().lower() in BAD_PASSWORDS or len(admin_pass) < 8:
-        raise ValueError("Admin password must be at least 8 characters and cannot be a known default like 'secret'.")
+        raise ValueError("Admin password must be at least 8 characters unless using the local default 'admin'.")
 
 
 def validate_port(port: str) -> str:
@@ -163,23 +165,23 @@ def ask(prompt: str, default: str = "") -> str:
     return value or default
 
 
-def ask_password() -> str:
+def ask_password(admin_user: str = "admin") -> str:
     while True:
-        password = getpass.getpass("Dashboard admin password (min 8 chars, not 'secret'): ")
+        password = getpass.getpass("Dashboard admin password (default local password is 'admin'; choose a stronger one for deployment): ")
         confirm = getpass.getpass("Confirm dashboard admin password: ")
         if password != confirm:
             print("Passwords did not match. Try again.")
             continue
-        validate_admin_credentials("admin", password)
+        validate_admin_credentials(admin_user, password)
         return password
 
 
 def interactive_config() -> Dict[str, str]:
     print("Honeypotv2.03 setup: create a local .env configuration")
-    admin_user = ask("Dashboard admin username", "admin")
+    admin_user = ask("Dashboard admin username (default local username is admin)", "admin")
     while True:
         try:
-            admin_pass = ask_password()
+            admin_pass = ask_password(admin_user)
             validate_admin_credentials(admin_user, admin_pass)
             break
         except ValueError as exc:
