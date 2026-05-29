@@ -13,6 +13,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 from env_loader import load_env_file
+from app_meta import APP_NAME
 
 load_env_file()
 
@@ -46,6 +47,8 @@ def configured_providers():
         providers.append("discord")
     if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"):
         providers.append("telegram")
+    if os.environ.get("N8N_WEBHOOK_URL"):
+        providers.append("n8n")
     return providers
 
 
@@ -57,6 +60,7 @@ def provider_status():
             "slack": {"configured": bool(os.environ.get("SLACK_WEBHOOK_URL"))},
             "discord": {"configured": bool(os.environ.get("DISCORD_WEBHOOK_URL"))},
             "telegram": {"configured": bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))},
+            "n8n": {"configured": bool(os.environ.get("N8N_WEBHOOK_URL"))},
         },
     }
 
@@ -126,6 +130,18 @@ def _send_telegram(text):
     return _post_json(url, {"chat_id": chat_id, "text": text[:3900], "disable_web_page_preview": True})
 
 
+def _send_n8n(event, text):
+    payload = {
+        "source": APP_NAME,
+        "summary": text,
+        "event": event,
+        "severity": event.get("severity") or severity_for_category(event.get("attack_category")),
+        "provider": "n8n",
+        "sent_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    return _post_json(os.environ["N8N_WEBHOOK_URL"], payload)
+
+
 def _rate_limited(event):
     interval = int(os.environ.get("HONEYPOT_ALERT_MIN_INTERVAL_SECONDS", str(_DEFAULT_MIN_INTERVAL_SECONDS)))
     key = f"{event.get('event_type')}:{event.get('service')}:{event.get('ip')}:{event.get('attack_category')}"
@@ -155,6 +171,8 @@ def send_alert(event):
                 results[provider] = {"ok": bool(_send_discord(text))}
             elif provider == "telegram":
                 results[provider] = {"ok": bool(_send_telegram(text))}
+            elif provider == "n8n":
+                results[provider] = {"ok": bool(_send_n8n(event, text))}
         except (urllib.error.URLError, TimeoutError, OSError, KeyError, ValueError) as exc:
             results[provider] = {"ok": False, "error": exc.__class__.__name__}
     return {"sent": any(item.get("ok") for item in results.values()), "providers": results}

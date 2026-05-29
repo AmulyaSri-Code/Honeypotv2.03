@@ -28,6 +28,7 @@ class SetupConfigTests(unittest.TestCase):
             alerts_enabled=True,
             alert_min_severity="medium",
             slack_webhook_url="https://hooks.slack.test/token",
+            n8n_webhook_url="https://n8n.test/webhook/honeypot",
             discord_webhook_url="",
             telegram_bot_token="123:token",
             telegram_chat_id="999",
@@ -39,6 +40,7 @@ class SetupConfigTests(unittest.TestCase):
         self.assertEqual(config["HONEYPOT_DASHBOARD_PORT"], "5051")
         self.assertEqual(config["HONEYPOT_ALERTS_ENABLED"], "true")
         self.assertEqual(config["HONEYPOT_ALERT_MIN_SEVERITY"], "medium")
+        self.assertEqual(config["N8N_WEBHOOK_URL"], "https://n8n.test/webhook/honeypot")
         self.assertTrue(config["HONEYPOT_AUTH_SECRET"])
         self.assertNotEqual(config["HONEYPOT_AUTH_SECRET"], "change-me-in-production")
 

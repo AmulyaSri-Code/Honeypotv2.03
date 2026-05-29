@@ -2,7 +2,7 @@
 """Interactive setup helper for Honeypotv2.03.
 
 Creates a local .env file with admin credentials, dashboard binding, runtime
-limits, and optional Slack/Telegram/Discord alert settings. The script never
+limits, and optional Slack/Telegram/Discord/n8n alert settings. The script never
 stores secrets anywhere except the target .env file and sets that file to 0600.
 """
 from __future__ import annotations
@@ -67,6 +67,7 @@ def build_env_config(
     alerts_enabled: object = False,
     alert_min_severity: str = DEFAULTS["HONEYPOT_ALERT_MIN_SEVERITY"],
     slack_webhook_url: str = "",
+    n8n_webhook_url: str = "",
     discord_webhook_url: str = "",
     telegram_bot_token: str = "",
     telegram_chat_id: str = "",
@@ -102,6 +103,7 @@ def build_env_config(
         "HONEYPOT_ALERT_MIN_SEVERITY": severity,
         "HONEYPOT_ALERT_MIN_INTERVAL_SECONDS": DEFAULTS["HONEYPOT_ALERT_MIN_INTERVAL_SECONDS"],
         "SLACK_WEBHOOK_URL": slack_webhook_url.strip(),
+        "N8N_WEBHOOK_URL": n8n_webhook_url.strip(),
         "DISCORD_WEBHOOK_URL": discord_webhook_url.strip(),
         "TELEGRAM_BOT_TOKEN": telegram_bot_token.strip(),
         "TELEGRAM_CHAT_ID": telegram_chat_id.strip(),
@@ -134,6 +136,7 @@ def format_env(config: Dict[str, str]) -> str:
         "HONEYPOT_ALERT_MIN_SEVERITY",
         "HONEYPOT_ALERT_MIN_INTERVAL_SECONDS",
         "SLACK_WEBHOOK_URL",
+        "N8N_WEBHOOK_URL",
         "DISCORD_WEBHOOK_URL",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
@@ -188,9 +191,10 @@ def interactive_config() -> Dict[str, str]:
             print(f"Invalid password: {exc}")
     bind_host = ask("Dashboard bind host", DEFAULTS["HONEYPOT_BIND_HOST"])
     dashboard_port = ask("Dashboard port", DEFAULTS["HONEYPOT_DASHBOARD_PORT"])
-    alerts_enabled = ask("Enable Slack/Telegram/Discord alerts? yes/no", "no")
+    alerts_enabled = ask("Enable Slack/Telegram/Discord/n8n alerts? yes/no", "no")
     alert_min_severity = ask("Minimum alert severity", DEFAULTS["HONEYPOT_ALERT_MIN_SEVERITY"])
     slack = ask("Slack webhook URL (optional)", "")
+    n8n = ask("n8n webhook URL (optional)", "")
     discord = ask("Discord webhook URL (optional)", "")
     telegram_token = ask("Telegram bot token (optional)", "")
     telegram_chat = ask("Telegram chat ID (optional)", "")
@@ -202,6 +206,7 @@ def interactive_config() -> Dict[str, str]:
         alerts_enabled=alerts_enabled,
         alert_min_severity=alert_min_severity,
         slack_webhook_url=slack,
+        n8n_webhook_url=n8n,
         discord_webhook_url=discord,
         telegram_bot_token=telegram_token,
         telegram_chat_id=telegram_chat,
@@ -220,6 +225,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--alerts-enabled", default="false")
     parser.add_argument("--alert-min-severity", default=DEFAULTS["HONEYPOT_ALERT_MIN_SEVERITY"])
     parser.add_argument("--slack-webhook-url", default="")
+    parser.add_argument("--n8n-webhook-url", default="")
     parser.add_argument("--discord-webhook-url", default="")
     parser.add_argument("--telegram-bot-token", default="")
     parser.add_argument("--telegram-chat-id", default="")
@@ -239,6 +245,7 @@ def main() -> int:
             alerts_enabled=args.alerts_enabled,
             alert_min_severity=args.alert_min_severity,
             slack_webhook_url=args.slack_webhook_url,
+            n8n_webhook_url=args.n8n_webhook_url,
             discord_webhook_url=args.discord_webhook_url,
             telegram_bot_token=args.telegram_bot_token,
             telegram_chat_id=args.telegram_chat_id,
