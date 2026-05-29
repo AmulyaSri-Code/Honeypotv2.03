@@ -1,6 +1,7 @@
 {
   "id": "honeypot-v3-critical-alert-router",
   "name": "HoneyPot v3 - Critical Alert Router",
+  "active": true,
   "nodes": [
     {
       "parameters": {
@@ -21,94 +22,30 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json.event.severity || $json.severity}}",
-              "operation": "equals",
-              "value2": "critical"
-            }
-          ]
-        }
+        "jsCode": "const body = $json.body || $json;\nconst event = body.event || {};\nconst severity = String(event.severity || body.severity || '').toLowerCase();\nconst isCritical = severity === 'critical';\nreturn [{ json: { accepted: isCritical, reason: isCritical ? 'critical_alert_accepted' : 'below_critical_threshold', workflow: 'HoneyPot v3 - Critical Alert Router', title: `🚨 ${body.source || 'HoneyPot v3'} critical alert`, summary: body.summary || 'HoneyPot v3 alert received', severity, source_ip: event.ip || body.ip || 'unknown', service: event.service || body.service || 'unknown', attack_category: event.attack_category || body.attack_category || 'unknown', payload: event.command || body.command || '', received_at: new Date().toISOString() } } }];"
       },
-      "id": "critical-filter",
-      "name": "Critical severity only",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
+      "id": "normalize-alert",
+      "name": "Normalize alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        -280,
+        -260,
         0
       ]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "title",
-              "value": "=🚨 {{$json.source || 'HoneyPot v3'}} critical alert"
-            },
-            {
-              "name": "summary",
-              "value": "={{$json.summary}}"
-            },
-            {
-              "name": "source_ip",
-              "value": "={{$json.event.ip}}"
-            },
-            {
-              "name": "service",
-              "value": "={{$json.event.service}}"
-            },
-            {
-              "name": "attack_category",
-              "value": "={{$json.event.attack_category}}"
-            },
-            {
-              "name": "payload",
-              "value": "={{$json.event.command}}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "format-incident",
-      "name": "Format incident",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [
-        -40,
-        -90
-      ]
-    },
-    {
-      "parameters": {
         "respondWith": "json",
-        "responseBody": "={\"accepted\":true,\"workflow\":\"HoneyPot v3 - Critical Alert Router\",\"source_ip\":\"{{$json.source_ip}}\"}",
+        "responseBody": "={\"accepted\":{{$json.accepted}},\"reason\":\"{{$json.reason}}\",\"workflow\":\"HoneyPot v3 - Critical Alert Router\",\"source_ip\":\"{{$json.source_ip}}\",\"severity\":\"{{$json.severity}}\"}",
         "options": {}
       },
-      "id": "respond-critical",
-      "name": "Respond accepted",
+      "id": "respond-alert",
+      "name": "Respond with alert status",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        220,
-        -90
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\"accepted\":false,\"reason\":\"below_critical_threshold\"}",
-        "options": {}
-      },
-      "id": "respond-ignored",
-      "name": "Respond ignored",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        -40,
-        140
+        20,
+        0
       ]
     }
   ],
@@ -117,36 +54,18 @@
       "main": [
         [
           {
-            "node": "Critical severity only",
+            "node": "Normalize alert",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Critical severity only": {
+    "Normalize alert": {
       "main": [
         [
           {
-            "node": "Format incident",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respond ignored",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format incident": {
-      "main": [
-        [
-          {
-            "node": "Respond accepted",
+            "node": "Respond with alert status",
             "type": "main",
             "index": 0
           }
@@ -157,6 +76,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "active": false,
-  "versionId": "honeypot-v3-template"
+  "pinData": {}
 }

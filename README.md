@@ -231,11 +231,13 @@ Example automation ideas:
 
 Report automation can use `GET /api/reports/daily` and `GET /api/reports/weekly`; both endpoints are designed for a viewer API key and include totals, top attackers, top ASNs, categories, and open case counts.
 
-Start local n8n with Docker Compose:
+Start local n8n and import/activate the alert workflow with the setup helper:
 
 ```bash
-docker-compose --profile automation up -d n8n
+scripts/setup_n8n.sh
 ```
+
+The helper starts n8n, waits for `/healthz`, validates the workflow JSON, imports it, publishes or activates it, restarts n8n so production webhooks register, and smoke-tests the webhook for HTTP 200.
 
 Open n8n locally:
 
@@ -243,22 +245,13 @@ Open n8n locally:
 http://localhost:5678
 ```
 
-Import the sample workflow through the n8n UI:
+Manual UI import is also supported with:
 
 ```text
 n8n-workflows/honeypot-v3-critical-alert.json
 ```
 
-Or import it with the n8n CLI inside the Docker container:
-
-```bash
-docker cp n8n-workflows/honeypot-v3-critical-alert.json honeypot_n8n:/tmp/honeypot-v3-critical-alert.json
-docker exec honeypot_n8n n8n import:workflow --input=/tmp/honeypot-v3-critical-alert.json
-docker exec honeypot_n8n n8n update:workflow --id=honeypot-v3-critical-alert-router --active=true
-docker compose --profile automation restart n8n
-```
-
-The restart ensures n8n registers the production webhook after activation.
+If you import manually, publish/activate the workflow and restart n8n before using the production `/webhook/...` URL.
 
 The sample workflow exposes this webhook path:
 

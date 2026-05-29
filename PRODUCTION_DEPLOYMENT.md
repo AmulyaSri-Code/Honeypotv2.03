@@ -88,7 +88,7 @@ python setup.py
 
 docker compose up --build -d honeypot
 
-docker compose --profile automation up -d n8n
+scripts/setup_n8n.sh
 ```
 
 Production recommendations:
@@ -132,6 +132,12 @@ Import these workflow templates:
 
 - `n8n-workflows/honeypot-v3-critical-alert.json`
 - `n8n-workflows/honeypot-v3-daily-weekly-reports.json`
+
+The alert workflow is imported and smoke-tested by:
+
+```bash
+scripts/setup_n8n.sh
+```
 
 The report workflow is designed to call:
 
