@@ -23,6 +23,7 @@ load_env_file()
 
 from app_meta import APP_NAME, APP_VERSION
 from notifications import send_alert_async, severity_for_category
+from enrichment import enrich_ip
 
 try:
     import paramiko
@@ -84,7 +85,9 @@ class HoneypotDatabase:
             CREATE TABLE IF NOT EXISTS connections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, port INTEGER, service TEXT,
                 timestamp TEXT, country TEXT, city TEXT, region TEXT, lat REAL, lon REAL,
-                isp TEXT, raw_geo TEXT, session_duration_sec INTEGER DEFAULT 0
+                isp TEXT, raw_geo TEXT, session_duration_sec INTEGER DEFAULT 0,
+                asn TEXT, asn_org TEXT, reputation_score INTEGER DEFAULT 0,
+                reputation_level TEXT, reputation_flags TEXT, enrichment_provider TEXT
             );
             CREATE TABLE IF NOT EXISTS commands (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, connection_id INTEGER, ip TEXT,
@@ -117,16 +120,40 @@ class HoneypotDatabase:
                 last_used_at TEXT,
                 is_active INTEGER NOT NULL DEFAULT 1
             );
+            CREATE TABLE IF NOT EXISTS cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                severity TEXT NOT NULL DEFAULT 'medium',
+                source_ip TEXT,
+                assignee TEXT,
+                summary TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                closed_at TEXT
+            );
             CREATE INDEX IF NOT EXISTS idx_connections_ip ON connections(ip);
             CREATE INDEX IF NOT EXISTS idx_commands_ip ON commands(ip);
             CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
             CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
             CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active);
+            CREATE INDEX IF NOT EXISTS idx_cases_status ON cases(status);
+            CREATE INDEX IF NOT EXISTS idx_cases_source_ip ON cases(source_ip);
         """)
-        try:
-            conn.execute("ALTER TABLE commands ADD COLUMN attack_category TEXT")
-        except sqlite3.OperationalError:
-            pass  # Column exists
+        migrations = [
+            ("commands", "attack_category", "TEXT"),
+            ("connections", "asn", "TEXT"),
+            ("connections", "asn_org", "TEXT"),
+            ("connections", "reputation_score", "INTEGER DEFAULT 0"),
+            ("connections", "reputation_level", "TEXT"),
+            ("connections", "reputation_flags", "TEXT"),
+            ("connections", "enrichment_provider", "TEXT"),
+        ]
+        for table, column, column_type in migrations:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+            except sqlite3.OperationalError:
+                pass  # Column exists
         conn.commit()
         conn.close()
 
@@ -146,11 +173,26 @@ class HoneypotDatabase:
             country, city, region, isp = loc["c"], "Demo Node", "Simulated", "Global Botnet"
             lat, lon = loc["lat"] + random.uniform(-4, 4), loc["lon"] + random.uniform(-4, 4)
 
+        enrichment = enrich_ip(ip)
+        country = country or enrichment.get("country")
+        city = city or enrichment.get("city")
+        region = region or enrichment.get("region")
+        lat = lat if lat is not None else enrichment.get("lat")
+        lon = lon if lon is not None else enrichment.get("lon")
+        isp = isp or enrichment.get("isp")
+        raw_geo = raw_geo or enrichment.get("raw_geo")
         c = self._get_conn()
         cur = c.cursor()
         cur.execute("""INSERT INTO connections (ip, port, service, timestamp, country, city,
-            region, lat, lon, isp, raw_geo) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (ip, port, service, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z", country, city, region, lat, lon, isp, raw_geo))
+            region, lat, lon, isp, raw_geo, asn, asn_org, reputation_score, reputation_level, reputation_flags, enrichment_provider)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                ip, port, service, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z",
+                country, city, region, lat, lon, isp, raw_geo, enrichment.get("asn"),
+                enrichment.get("asn_org"), int(enrichment.get("reputation_score") or 0),
+                enrichment.get("reputation_level"), json.dumps(enrichment.get("reputation_flags") or []),
+                enrichment.get("enrichment_provider"),
+            ))
         c.commit()
         return cur.lastrowid
 
@@ -205,7 +247,7 @@ def get_geolocation(ip):
     if ip in ("127.0.0.1", "localhost", "::1") or ip.startswith("192.168.") or ip.startswith("10."):
         return {"country": "Local Network", "city": "Internal", "query": ip}
     try:
-        with urllib.request.urlopen(f"https://ip-api.com/json/{ip}?fields=status,country,city,regionName,lat,lon,isp,query", timeout=5) as r:
+        with urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=status,country,city,regionName,lat,lon,isp,query", timeout=5) as r:
             d = json.loads(r.read().decode())
             return d if d.get("status") == "success" else None
     except Exception:

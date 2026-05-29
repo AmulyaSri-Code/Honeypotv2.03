@@ -8,8 +8,11 @@ Important: HoneyPot v3 is for defensive monitoring only. Deploy it only on syste
 
 - Multi-service honeypot sensors for SSH, FTP, HTTP, Telnet, and raw TCP payloads
 - Flask API with token authentication, API keys, audit logs, rate limiting, and security headers
-- Premium SOC dashboard with live feed, attack map, risk scoring, service matrix, alert status, and analyst workbench
+- Premium SOC dashboard with live feed, attack map, risk scoring, ASN reputation pivots, case queue, service matrix, alert status, and analyst workbench
 - SQLite event storage with WAL mode for safer concurrent reads/writes
+- IP reputation and ASN enrichment with private-IP-safe local handling
+- Ticketing/case-management API for SOC triage and external workflow tools
+- Daily/weekly report API endpoints for n8n, email, or chat summaries
 - ML-assisted command classification using TF-IDF and scikit-learn
 - Optional Slack, Discord, Telegram, and n8n automation alert delivery
 - Website-backend integration guide for routing suspicious paths from an existing site to HoneyPot v3
@@ -125,6 +128,8 @@ HONEYPOT_ADMIN_PASS=replace_with_a_strong_password
 HONEYPOT_AUTH_SECRET=generated_by_setup_py
 HONEYPOT_TOKEN_TTL_SECONDS=28800
 HONEYPOT_RATE_LIMIT_PER_MIN=240
+HONEYPOT_ENRICHMENT_ENABLED=true
+HONEYPOT_ENRICHMENT_PROVIDER=ip-api
 HONEYPOT_BIND_HOST=127.0.0.1
 HONEYPOT_SENSOR_BIND_HOST=127.0.0.1
 HONEYPOT_DASHBOARD_PORT=5050
@@ -160,6 +165,15 @@ Auth endpoints:
 - `POST /api/auth/bootstrap`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
+
+Enrichment, cases, and reports:
+
+- `GET /api/threats/summary` includes ASN, reputation, deployment, and case workload rollups
+- `GET /api/cases?status=open&limit=100`
+- `POST /api/cases`
+- `PATCH /api/cases/<id>`
+- `GET /api/reports/daily`
+- `GET /api/reports/weekly`
 
 Alert endpoints:
 
@@ -214,6 +228,8 @@ Example automation ideas:
 - Enrich attacker IPs through reputation APIs before notifying analysts
 - Store high-risk events in Sheets, Airtable, Notion, or a case-management database
 - Generate daily/weekly security summaries
+
+Report automation can use `GET /api/reports/daily` and `GET /api/reports/weekly`; both endpoints are designed for a viewer API key and include totals, top attackers, top ASNs, categories, and open case counts.
 
 Start local n8n with Docker Compose:
 
@@ -340,6 +356,8 @@ Then check the dashboard activity feed and API telemetry.
 - Configure log rotation for `honeypot.log` and database backup/retention for `honeypot.db`
 - Configure alert providers only through environment variables or secret managers
 - Run tests and dashboard smoke checks before publishing changes
+
+A hardened deployment guide is included at `PRODUCTION_DEPLOYMENT.md` with firewall, reverse-proxy, Docker, enrichment, n8n, and go-live verification guidance.
 
 ## License
 

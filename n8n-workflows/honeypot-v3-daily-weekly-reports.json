@@ -1,0 +1,169 @@
+{
+  "id": "honeypot-v3-daily-weekly-reports",
+  "name": "HoneyPot v3 Daily and Weekly Reports",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "weekly-schedule",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.HONEYPOT_API_BASE_URL || 'http://honeypot:5050'}}/api/reports/daily",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{$env.HONEYPOT_VIEWER_API_KEY}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-daily-report",
+      "name": "Get Daily Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.HONEYPOT_API_BASE_URL || 'http://honeypot:5050'}}/api/reports/weekly",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{$env.HONEYPOT_VIEWER_API_KEY}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-weekly-report",
+      "name": "Get Weekly Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const report = $json;\nconst s = report.summary || {};\nconst asns = (report.top_asns || []).slice(0, 5).map(a => `- ${a.asn || 'Unknown'} ${a.organization || ''}: ${a.connections || 0} connections, max risk ${a.max_reputation_score || 0}`).join('\\n') || '- none';\nconst attackers = (report.top_attackers || []).slice(0, 5).map(a => `- ${a.ip}: ${a.events || 0} events`).join('\\n') || '- none';\nreturn [{ json: { subject: `HoneyPot v3 ${report.period} report`, text: `HoneyPot v3 ${report.period} report generated ${report.generated_at}\\n\\nSummary\\n- Connections: ${s.connections || 0}\\n- Commands: ${s.commands || 0}\\n- Open cases: ${s.open_cases || 0}\\n\\nTop attackers\\n${attackers}\\n\\nTop ASNs\\n${asns}` } } }];"
+      },
+      "id": "format-daily-report",
+      "name": "Format Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const report = $json;\nconst s = report.summary || {};\nconst asns = (report.top_asns || []).slice(0, 10).map(a => `- ${a.asn || 'Unknown'} ${a.organization || ''}: ${a.connections || 0} connections, max risk ${a.max_reputation_score || 0}`).join('\\n') || '- none';\nconst attackers = (report.top_attackers || []).slice(0, 10).map(a => `- ${a.ip}: ${a.events || 0} events`).join('\\n') || '- none';\nreturn [{ json: { subject: `HoneyPot v3 ${report.period} report`, text: `HoneyPot v3 ${report.period} report generated ${report.generated_at}\\n\\nSummary\\n- Connections: ${s.connections || 0}\\n- Commands: ${s.commands || 0}\\n- Open cases: ${s.open_cases || 0}\\n\\nTop attackers\\n${attackers}\\n\\nTop ASNs\\n${asns}` } } }];"
+      },
+      "id": "format-weekly-report",
+      "name": "Format Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Format Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Format Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

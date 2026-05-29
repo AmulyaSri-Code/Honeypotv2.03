@@ -5,6 +5,7 @@ Run: python api.py (default http://localhost:5050)
 import os
 import sqlite3
 import logging
+import json
 from functools import wraps
 from datetime import datetime, timezone
 from flask import Flask, jsonify, send_from_directory, request, Response
@@ -562,11 +563,16 @@ def threat_summary():
 
     cur.execute(
         """
-        SELECT ip, COUNT(*) AS events, MAX(timestamp) AS last_seen
-        FROM commands
-        WHERE ip IS NOT NULL AND ip != ''
-        GROUP BY ip
-        ORDER BY events DESC, last_seen DESC
+        SELECT c.ip, COUNT(*) AS events, MAX(c.timestamp) AS last_seen,
+               COALESCE(NULLIF(MAX(n.asn), ''), 'Unknown') AS asn,
+               COALESCE(NULLIF(MAX(n.asn_org), ''), 'Unknown') AS asn_org,
+               MAX(COALESCE(n.reputation_score, 0)) AS reputation_score,
+               COALESCE(NULLIF(MAX(n.reputation_level), ''), 'unknown') AS reputation_level
+        FROM commands c
+        LEFT JOIN connections n ON n.ip = c.ip
+        WHERE c.ip IS NOT NULL AND c.ip != ''
+        GROUP BY c.ip
+        ORDER BY events DESC, reputation_score DESC, last_seen DESC
         LIMIT 8
         """
     )
@@ -594,6 +600,37 @@ def threat_summary():
         """
     )
     recent_critical = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT COALESCE(NULLIF(asn, ''), 'Unknown') AS asn,
+               COALESCE(NULLIF(asn_org, ''), 'Unknown') AS organization,
+               COUNT(*) AS connections,
+               MAX(COALESCE(reputation_score, 0)) AS max_reputation_score
+        FROM connections
+        GROUP BY COALESCE(NULLIF(asn, ''), 'Unknown'), COALESCE(NULLIF(asn_org, ''), 'Unknown')
+        ORDER BY connections DESC, max_reputation_score DESC
+        LIMIT 8
+        """
+    )
+    top_asns = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT COALESCE(NULLIF(reputation_level, ''), 'unknown') AS level,
+               COUNT(*) AS connections,
+               AVG(COALESCE(reputation_score, 0)) AS avg_score
+        FROM connections
+        GROUP BY COALESCE(NULLIF(reputation_level, ''), 'unknown')
+        ORDER BY connections DESC
+        """
+    )
+    reputation = [dict(r) for r in cur.fetchall()]
+
+    cur.execute("SELECT COUNT(*) FROM cases WHERE status != 'closed'")
+    open_cases = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM cases WHERE status = 'closed'")
+    closed_cases = cur.fetchone()[0]
 
     cur.execute(
         """
@@ -630,6 +667,9 @@ def threat_summary():
         },
         "top_attackers": top_attackers,
         "top_countries": top_countries,
+        "top_asns": top_asns,
+        "reputation": reputation,
+        "cases": {"open": open_cases, "closed": closed_cases},
         "recent_critical": recent_critical,
         "timeline": timeline,
         "deployment": {
@@ -637,6 +677,178 @@ def threat_summary():
             "checks": checks,
         },
     })
+
+
+def _case_dict(row):
+    data = dict(row)
+    return data
+
+
+def _report_window_sql(period):
+    if period == "weekly":
+        return "datetime('now', '-7 days')", "weekly"
+    return "datetime('now', '-1 day')", "daily"
+
+
+def _build_report(period="daily"):
+    since_expr, normalized = _report_window_sql(period)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(f"SELECT COUNT(*) FROM connections WHERE datetime(timestamp) >= {since_expr}")
+    connections_count = cur.fetchone()[0]
+    cur.execute(f"SELECT COUNT(*) FROM commands WHERE datetime(timestamp) >= {since_expr}")
+    commands_count = cur.fetchone()[0]
+    cur.execute(
+        f"""
+        SELECT ip, COUNT(*) AS events, MAX(timestamp) AS last_seen
+        FROM commands
+        WHERE datetime(timestamp) >= {since_expr} AND ip IS NOT NULL AND ip != ''
+        GROUP BY ip
+        ORDER BY events DESC, last_seen DESC
+        LIMIT 10
+        """
+    )
+    top_attackers = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        f"""
+        SELECT COALESCE(NULLIF(asn, ''), 'Unknown') AS asn,
+               COALESCE(NULLIF(asn_org, ''), 'Unknown') AS organization,
+               COUNT(*) AS connections,
+               MAX(COALESCE(reputation_score, 0)) AS max_reputation_score
+        FROM connections
+        WHERE datetime(timestamp) >= {since_expr}
+        GROUP BY COALESCE(NULLIF(asn, ''), 'Unknown'), COALESCE(NULLIF(asn_org, ''), 'Unknown')
+        ORDER BY connections DESC, max_reputation_score DESC
+        LIMIT 10
+        """
+    )
+    top_asns = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        f"""
+        SELECT attack_category, COUNT(*) AS count
+        FROM commands
+        WHERE datetime(timestamp) >= {since_expr} AND attack_category IS NOT NULL AND attack_category != ''
+        GROUP BY attack_category
+        ORDER BY count DESC
+        LIMIT 10
+        """
+    )
+    categories = [dict(r) for r in cur.fetchall()]
+    cur.execute("SELECT COUNT(*) FROM cases WHERE status != 'closed'")
+    open_cases = cur.fetchone()[0]
+    conn.close()
+    return {
+        "period": normalized,
+        "generated_at": utc_now(),
+        "summary": {
+            "connections": connections_count,
+            "commands": commands_count,
+            "open_cases": open_cases,
+        },
+        "top_attackers": top_attackers,
+        "top_asns": top_asns,
+        "categories": categories,
+    }
+
+
+@app.route("/api/cases", methods=["GET"])
+@requires_token()
+def list_cases():
+    status = (request.args.get("status") or "").strip().lower()
+    limit = parse_limit(request.args.get("limit", 100))
+    conn = get_db()
+    if status:
+        rows = conn.execute(
+            """
+            SELECT id, title, status, severity, source_ip, assignee, summary, created_at, updated_at, closed_at
+            FROM cases WHERE status=? ORDER BY id DESC LIMIT ?
+            """,
+            (status, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT id, title, status, severity, source_ip, assignee, summary, created_at, updated_at, closed_at
+            FROM cases ORDER BY id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    conn.close()
+    return jsonify([_case_dict(r) for r in rows])
+
+
+@app.route("/api/cases", methods=["POST"])
+@requires_token(role="admin")
+def create_case():
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    severity = (body.get("severity") or "medium").strip().lower()
+    status = (body.get("status") or "open").strip().lower()
+    source_ip = (body.get("source_ip") or body.get("ip") or "").strip() or None
+    assignee = (body.get("assignee") or "").strip() or None
+    summary = (body.get("summary") or "").strip() or None
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if severity not in {"low", "medium", "high", "critical"}:
+        return jsonify({"error": "severity must be low, medium, high, or critical"}), 400
+    if status not in {"open", "investigating", "contained", "closed"}:
+        return jsonify({"error": "status must be open, investigating, contained, or closed"}), 400
+    now = utc_now()
+    conn = get_db()
+    cur = conn.execute(
+        """
+        INSERT INTO cases (title, status, severity, source_ip, assignee, summary, created_at, updated_at, closed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (title, status, severity, source_ip, assignee, summary, now, now, now if status == "closed" else None),
+    )
+    conn.commit()
+    row = conn.execute("SELECT * FROM cases WHERE id=?", (cur.lastrowid,)).fetchone()
+    conn.close()
+    log_audit(request.user.get("username", "unknown"), "case.create", target=str(cur.lastrowid), details=title)
+    return jsonify(_case_dict(row)), 201
+
+
+@app.route("/api/cases/<int:case_id>", methods=["PATCH"])
+@requires_token(role="admin")
+def update_case(case_id):
+    body = request.get_json(silent=True) or {}
+    allowed = {"title", "status", "severity", "source_ip", "assignee", "summary"}
+    updates = {k: body[k] for k in allowed if k in body}
+    if "status" in updates and str(updates["status"]).lower() not in {"open", "investigating", "contained", "closed"}:
+        return jsonify({"error": "invalid status"}), 400
+    if "severity" in updates and str(updates["severity"]).lower() not in {"low", "medium", "high", "critical"}:
+        return jsonify({"error": "invalid severity"}), 400
+    conn = get_db()
+    existing = conn.execute("SELECT id FROM cases WHERE id=?", (case_id,)).fetchone()
+    if not existing:
+        conn.close()
+        return jsonify({"error": "case not found"}), 404
+    fields = []
+    values = []
+    for key, value in updates.items():
+        fields.append(f"{key}=?")
+        values.append(str(value).strip() if value is not None else None)
+    fields.append("updated_at=?")
+    values.append(utc_now())
+    if str(updates.get("status", "")).lower() == "closed":
+        fields.append("closed_at=?")
+        values.append(utc_now())
+    values.append(case_id)
+    conn.execute(f"UPDATE cases SET {', '.join(fields)} WHERE id=?", values)
+    conn.commit()
+    row = conn.execute("SELECT * FROM cases WHERE id=?", (case_id,)).fetchone()
+    conn.close()
+    log_audit(request.user.get("username", "unknown"), "case.update", target=str(case_id), details=json.dumps(sorted(updates)))
+    return jsonify(_case_dict(row))
+
+
+@app.route("/api/reports/<period>")
+@requires_token()
+def report(period):
+    if period not in {"daily", "weekly"}:
+        return jsonify({"error": "period must be daily or weekly"}), 400
+    return jsonify(_build_report(period))
 
 
 @app.route("/api/stats")
@@ -676,7 +888,8 @@ def connections():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, ip, port, service, timestamp, country, city, session_duration_sec, lat, lon
+        SELECT id, ip, port, service, timestamp, country, city, region, session_duration_sec, lat, lon,
+               isp, asn, asn_org, reputation_score, reputation_level, reputation_flags, enrichment_provider
         FROM connections ORDER BY id DESC LIMIT ?
     """, (req_limit,))
     rows = cur.fetchall()
