@@ -12,6 +12,7 @@ Important: HoneyPot v3 is for defensive monitoring only. Deploy it only on syste
 - SQLite event storage with WAL mode for safer concurrent reads/writes
 - ML-assisted command classification using TF-IDF and scikit-learn
 - Optional Slack, Discord, Telegram, and n8n automation alert delivery
+- Website-backend integration guide for routing suspicious paths from an existing site to HoneyPot v3
 - Safer local defaults: dashboard and sensors bind to loopback unless explicitly configured otherwise
 - Docker Compose support for local deployment and optional security ecosystem services
 
@@ -89,6 +90,28 @@ Open:
 ```text
 http://localhost:5050
 ```
+
+## Website Backend Integration
+
+HoneyPot v3 can sit behind an existing website as a private sidecar service. The safest pattern is to keep your real website backend responsible for normal user traffic and route only suspicious trap paths to the HoneyPot v3 HTTP sensor.
+
+Recommended flow:
+
+```text
+Internet -> reverse proxy -> real website backend
+                         -> suspicious paths -> HoneyPot v3 HTTP sensor
+                         -> private admin path/VPN -> HoneyPot v3 dashboard
+```
+
+Good trap paths include probes such as `/.env`, `/.git`, `/wp-login.php`, `/wp-admin`, `/phpmyadmin`, `/adminer`, `/cgi-bin`, and `/server-status`. Do not route your entire production site to the honeypot unless it is intentionally a decoy/lab property.
+
+A complete backend integration guide is included here:
+
+```text
+WEBSITE_BACKEND_INTEGRATION.md
+```
+
+It includes Nginx, Caddy, Node.js/Express, Python/Flask-style, and Docker Compose sidecar examples, plus a go-live checklist for website owners.
 
 ## Configuration
 

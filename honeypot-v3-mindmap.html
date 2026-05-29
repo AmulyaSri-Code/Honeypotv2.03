@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoneyPot v3 Mind Map</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --panel: #0f172a;
+      --line: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --emerald: #34d399;
+      --violet: #a78bfa;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --orange: #fb923c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      color: var(--text);
+      background:
+        linear-gradient(rgba(30,41,59,.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,41,59,.35) 1px, transparent 1px),
+        radial-gradient(circle at 20% 10%, rgba(34,211,238,.16), transparent 28%),
+        radial-gradient(circle at 80% 20%, rgba(167,139,250,.13), transparent 30%),
+        var(--bg);
+      background-size: 40px 40px, 40px 40px, auto, auto, auto;
+      padding: 32px;
+    }
+    header { max-width: 1180px; margin: 0 auto 24px; }
+    .eyebrow { color: var(--cyan); letter-spacing: .18em; text-transform: uppercase; font-size: 12px; }
+    h1 { margin: 8px 0 8px; font-size: clamp(32px, 5vw, 58px); line-height: 1; }
+    .subtitle { color: var(--muted); max-width: 900px; line-height: 1.6; }
+    .map {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px;
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 22px;
+      background: rgba(15,23,42,.76);
+      box-shadow: 0 24px 80px rgba(0,0,0,.35);
+      overflow-x: auto;
+    }
+    .grid {
+      min-width: 1180px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .root {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 24px;
+      border-radius: 18px;
+      border: 1.5px solid var(--cyan);
+      background: linear-gradient(135deg, rgba(8,51,68,.72), rgba(15,23,42,.9));
+      position: relative;
+    }
+    .root strong { font-size: 28px; }
+    .root span { display: block; color: var(--muted); margin-top: 8px; }
+    .card {
+      border-radius: 16px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      background: rgba(2,6,23,.5);
+      min-height: 210px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; display:flex; gap:10px; align-items:center; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; box-shadow: 0 0 18px currentColor; }
+    ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.55; font-size: 13px; }
+    li { margin: 5px 0; }
+    .cyan { color: var(--cyan); border-color: var(--cyan); }
+    .emerald { color: var(--emerald); border-color: var(--emerald); }
+    .violet { color: var(--violet); border-color: var(--violet); }
+    .amber { color: var(--amber); border-color: var(--amber); }
+    .rose { color: var(--rose); border-color: var(--rose); }
+    .orange { color: var(--orange); border-color: var(--orange); }
+    .card.cyan { border-color: rgba(34,211,238,.45); background: rgba(8,51,68,.34); }
+    .card.emerald { border-color: rgba(52,211,153,.45); background: rgba(6,78,59,.3); }
+    .card.violet { border-color: rgba(167,139,250,.45); background: rgba(76,29,149,.25); }
+    .card.amber { border-color: rgba(251,191,36,.45); background: rgba(120,53,15,.22); }
+    .card.rose { border-color: rgba(251,113,133,.45); background: rgba(136,19,55,.25); }
+    .card.orange { border-color: rgba(251,146,60,.45); background: rgba(124,45,18,.24); }
+    .wide { grid-column: span 2; }
+    footer { max-width: 1180px; margin: 18px auto 0; color: var(--muted); font-size: 12px; }
+    @media (max-width: 900px) {
+      body { padding: 18px; }
+      .grid { min-width: 920px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">Project mind map</div>
+    <h1>HoneyPot v3</h1>
+    <p class="subtitle">A professional map of the honeypot platform: runtime, dashboard, security posture, alerting, optional n8n automation, testing, repository hygiene, and future roadmap.</p>
+  </header>
+
+  <main class="map" aria-label="HoneyPot v3 mind map">
+    <section class="grid">
+      <div class="root">
+        <strong>HoneyPot v3</strong>
+        <span>Capture suspicious traffic → classify events → alert analysts → optionally automate response with n8n</span>
+      </div>
+
+      <article class="card cyan">
+        <h2><span class="dot cyan"></span>Mission</h2>
+        <ul>
+          <li>Deception-first defense lab</li>
+          <li>Safe capture of suspicious activity</li>
+          <li>Analyst-ready event intelligence</li>
+          <li>Simple local-first deployment</li>
+        </ul>
+      </article>
+
+      <article class="card emerald">
+        <h2><span class="dot emerald"></span>Core Runtime</h2>
+        <ul>
+          <li>Flask app and API routes</li>
+          <li>Dashboard serving</li>
+          <li>Honeypot event capture</li>
+          <li>Environment loader with safe defaults</li>
+          <li>Health and metadata endpoints</li>
+        </ul>
+      </article>
+
+      <article class="card violet">
+        <h2><span class="dot violet"></span>Dashboard</h2>
+        <ul>
+          <li>HoneyPot v3 Defense Console</li>
+          <li>Login modal and browser UI</li>
+          <li>Threat and health visibility</li>
+          <li>Alert status: Slack, Telegram, Discord, n8n</li>
+          <li>Zero-console-error smoke verified</li>
+        </ul>
+      </article>
+
+      <article class="card rose">
+        <h2><span class="dot rose"></span>Security</h2>
+        <ul>
+          <li>Loopback-first bindings</li>
+          <li>Token-based API auth</li>
+          <li>No exposed webhook or token values</li>
+          <li>Runtime artifacts excluded from commits</li>
+          <li>n8n local UI bound to 127.0.0.1</li>
+        </ul>
+      </article>
+
+      <article class="card orange wide">
+        <h2><span class="dot orange"></span>Alerting and n8n Automation</h2>
+        <ul>
+          <li>Provider status exposes booleans only</li>
+          <li>Slack, Telegram, Discord, and n8n provider paths</li>
+          <li><code>N8N_WEBHOOK_URL</code> sends structured payloads</li>
+          <li>Payload includes source, summary, and original event</li>
+          <li>Optional Docker Compose automation profile</li>
+          <li>Sample workflow: critical alert router</li>
+        </ul>
+      </article>
+
+      <article class="card amber wide">
+        <h2><span class="dot amber"></span>Configuration and Deployment</h2>
+        <ul>
+          <li><code>.env.example</code> with safe placeholders</li>
+          <li><code>setup.py</code> interactive and CLI setup</li>
+          <li><code>docker-compose.yml</code> for app plus optional automation</li>
+          <li>Local n8n command: <code>docker-compose --profile automation up -d n8n</code></li>
+          <li>README documents quick start, alerts, Docker, and deployment checklist</li>
+        </ul>
+      </article>
+
+      <article class="card emerald">
+        <h2><span class="dot emerald"></span>Machine Learning</h2>
+        <ul>
+          <li>Attack classifier module</li>
+          <li>Model and vectorizer artifacts</li>
+          <li>Threat summary support</li>
+          <li>Classifier behavior tests</li>
+        </ul>
+      </article>
+
+      <article class="card cyan">
+        <h2><span class="dot cyan"></span>Testing</h2>
+        <ul>
+          <li>Pytest suite: API, alerts, dashboard, safety, ML, setup</li>
+          <li>Python compile checks</li>
+          <li>n8n JSON workflow validation</li>
+          <li>Dashboard JS syntax check</li>
+          <li>Docker Compose config validation</li>
+          <li>API and browser smoke checks</li>
+        </ul>
+      </article>
+
+      <article class="card violet">
+        <h2><span class="dot violet"></span>Repository Hygiene</h2>
+        <ul>
+          <li>Source, docs, tests, and workflow committed</li>
+          <li>Generated runtime files stay local</li>
+          <li>Examples: honeypot.db, honeypot.log, reports, caches</li>
+          <li>Main branch pushed to origin</li>
+        </ul>
+      </article>
+
+      <article class="card amber wide">
+        <h2><span class="dot amber"></span>Website Backend Integration</h2>
+        <ul>
+          <li>Run HoneyPot v3 as a private sidecar beside the real website backend</li>
+          <li>Route only suspicious trap paths such as <code>/.env</code>, <code>/.git</code>, <code>/wp-login.php</code>, and <code>/phpmyadmin</code></li>
+          <li>Includes Nginx, Caddy, Node.js/Express, Python, and Docker Compose examples</li>
+          <li>Keep the dashboard private behind localhost, VPN, SSO, or IP allowlisting</li>
+          <li>Forward <code>X-Real-IP</code> and <code>X-Forwarded-For</code> for useful telemetry</li>
+        </ul>
+      </article>
+
+      <article class="card rose">
+        <h2><span class="dot rose"></span>Future Roadmap</h2>
+        <ul>
+          <li>IP reputation and ASN enrichment</li>
+          <li>Ticketing and case-management workflows</li>
+          <li>Daily/weekly n8n reports</li>
+          <li>More dashboard analytics</li>
+          <li>Hardened production deployment guide</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    Created for HoneyPot v3. Open this file in a browser for a clean visual map; use HONEYPOT_V3_MINDMAP.md for the Mermaid version.
+  </footer>
+</body>
+</html>
