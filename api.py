@@ -7,6 +7,7 @@ import sqlite3
 import logging
 import json
 import time
+from html import escape
 from functools import wraps
 from datetime import datetime, timezone
 from flask import Flask, jsonify, send_from_directory, request, Response
@@ -247,7 +248,7 @@ def apply_security_headers(resp):
         "connect-src 'self' https://*.basemaps.cartocdn.com; "
         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     )
-    if request.path in {"/", "/robots.txt", "/sitemap.xml"}:
+    if request.path in {"/", "/robots.txt", "/sitemap.xml", "/indexnow-key.txt", "/api/indexing/meta"}:
         resp.headers["Cache-Control"] = "public, max-age=300"
     else:
         resp.headers["Cache-Control"] = "no-store"
@@ -292,12 +293,27 @@ def public_base_url() -> str:
     return base.rstrip("/")
 
 
+def indexing_urls() -> list[tuple[str, str]]:
+    urls = [
+        ("/", "1.0"),
+        ("/robots.txt", "0.6"),
+        ("/sitemap.xml", "0.8"),
+        ("/api/meta", "0.4"),
+        ("/api/docs", "0.7"),
+        ("/swagger.json", "0.3"),
+    ]
+    if os.environ.get("HONEYPOT_INDEXNOW_KEY", "").strip():
+        urls.append(("/indexnow-key.txt", "0.3"))
+    return urls
+
+
 @app.route("/robots.txt")
 def robots_txt():
     base = public_base_url()
     body = "\n".join([
         "User-agent: *",
         "Allow: /",
+        f"Host: {base}",
         f"Sitemap: {base}/sitemap.xml",
         "",
     ])
@@ -308,19 +324,37 @@ def robots_txt():
 def sitemap_xml():
     base = public_base_url()
     today = datetime.now(timezone.utc).date().isoformat()
-    urls = [
-        ("/", "1.0"),
-        ("/api/meta", "0.4"),
-        ("/api/docs", "0.7"),
-    ]
     urlset = "".join(
-        f"<url><loc>{base}{path}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>{priority}</priority></url>"
-        for path, priority in urls
+        f"<url><loc>{escape(base + path)}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>{priority}</priority></url>"
+        for path, priority in indexing_urls()
     )
     return Response(
         f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urlset}</urlset>',
         mimetype="application/xml",
     )
+
+
+@app.route("/indexnow-key.txt")
+def indexnow_key_txt():
+    key = os.environ.get("HONEYPOT_INDEXNOW_KEY", "").strip()
+    if not key:
+        return Response("IndexNow key is not configured.\n", 404, mimetype="text/plain")
+    return Response(f"{key}\n", mimetype="text/plain")
+
+
+@app.route("/api/indexing/meta")
+def indexing_meta():
+    base = public_base_url()
+    return jsonify({
+        "public_url": base,
+        "robots": f"{base}/robots.txt",
+        "sitemap": f"{base}/sitemap.xml",
+        "indexnow_key_location": f"{base}/indexnow-key.txt" if os.environ.get("HONEYPOT_INDEXNOW_KEY", "").strip() else None,
+        "indexnow_endpoint": "https://api.indexnow.org/indexnow",
+        "google_site_verification": os.environ.get("HONEYPOT_GOOGLE_SITE_VERIFICATION", "").strip(),
+        "bing_site_verification": os.environ.get("HONEYPOT_BING_SITE_VERIFICATION", "").strip(),
+        "urls": [f"{base}{path}" for path, _priority in indexing_urls()],
+    })
 
 @app.route("/api/meta")
 def meta():

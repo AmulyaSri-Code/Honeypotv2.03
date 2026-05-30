@@ -134,6 +134,9 @@ HONEYPOT_BIND_HOST=127.0.0.1
 HONEYPOT_SENSOR_BIND_HOST=127.0.0.1
 HONEYPOT_DASHBOARD_PORT=5050
 HONEYPOT_PUBLIC_URL=https://your-domain.example
+HONEYPOT_INDEXNOW_KEY=
+HONEYPOT_GOOGLE_SITE_VERIFICATION=
+HONEYPOT_BING_SITE_VERIFICATION=
 HONEYPOT_ALERTS_ENABLED=false
 HONEYPOT_ALERT_MIN_SEVERITY=high
 N8N_WEBHOOK_URL=
@@ -146,6 +149,30 @@ Security guidance:
 - Keep `HONEYPOT_BIND_HOST=127.0.0.1` unless the dashboard is behind a firewall, VPN, reverse proxy auth, or equivalent control
 - Use `HONEYPOT_SENSOR_BIND_HOST=0.0.0.0` only when intentionally exposing sensors in a controlled lab/network
 - Rotate admin passwords, API keys, auth secrets, and alert webhooks regularly
+
+### Fast search indexing
+
+HoneyPot v3 exposes crawler discovery endpoints for public deployments:
+
+- `GET /robots.txt` allows crawling and points to the sitemap
+- `GET /sitemap.xml` lists the homepage, discovery files, metadata, and decoy API docs
+- `GET /indexnow-key.txt` serves the IndexNow verification key when `HONEYPOT_INDEXNOW_KEY` is set
+- `GET /api/indexing/meta` shows the public URL, sitemap URL, verification values, and IndexNow payload URLs
+
+Fast indexing checklist after the public site is live:
+
+1. Set `HONEYPOT_PUBLIC_URL` to the exact canonical HTTPS origin.
+2. Generate an IndexNow key, set `HONEYPOT_INDEXNOW_KEY`, and verify `/indexnow-key.txt` returns that key.
+3. Add the site to Google Search Console and Bing Webmaster Tools, then submit `/sitemap.xml`.
+4. Ping IndexNow after deployment:
+
+```bash
+python scripts/ping_indexing.py \
+  --base-url https://your-domain.example \
+  --key "$HONEYPOT_INDEXNOW_KEY"
+```
+
+Use `--dry-run` first to print the exact payload without contacting IndexNow.
 
 ## API Overview
 

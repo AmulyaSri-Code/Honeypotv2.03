@@ -90,17 +90,42 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
 
     def test_public_discovery_files_are_indexable_and_reference_public_url(self):
-        with patch.dict(api.os.environ, {"HONEYPOT_PUBLIC_URL": "https://example.com/honeypot"}, clear=False):
+        with patch.dict(api.os.environ, {
+            "HONEYPOT_PUBLIC_URL": "https://example.com/honeypot",
+            "HONEYPOT_INDEXNOW_KEY": "abc123indexkey",
+        }, clear=False):
             robots = self.client.get("/robots.txt")
             sitemap = self.client.get("/sitemap.xml")
 
         self.assertEqual(robots.status_code, 200)
         self.assertIn("Allow: /", robots.get_data(as_text=True))
         self.assertIn("Sitemap: https://example.com/honeypot/sitemap.xml", robots.get_data(as_text=True))
+        self.assertIn("Host: https://example.com/honeypot", robots.get_data(as_text=True))
         self.assertEqual(robots.headers.get("Cache-Control"), "public, max-age=300")
         self.assertEqual(sitemap.status_code, 200)
         self.assertIn("<loc>https://example.com/honeypot/</loc>", sitemap.get_data(as_text=True))
+        self.assertIn("<loc>https://example.com/honeypot/robots.txt</loc>", sitemap.get_data(as_text=True))
+        self.assertIn("<loc>https://example.com/honeypot/indexnow-key.txt</loc>", sitemap.get_data(as_text=True))
         self.assertEqual(sitemap.headers.get("Cache-Control"), "public, max-age=300")
+
+    def test_indexing_verification_hooks_are_public_and_cacheable(self):
+        env = {
+            "HONEYPOT_GOOGLE_SITE_VERIFICATION": "google-token-123",
+            "HONEYPOT_BING_SITE_VERIFICATION": "bing-token-456",
+            "HONEYPOT_INDEXNOW_KEY": "abc123indexkey",
+        }
+        with patch.dict(api.os.environ, env, clear=False):
+            meta = self.client.get("/api/indexing/meta")
+            key = self.client.get("/indexnow-key.txt")
+
+        self.assertEqual(meta.status_code, 200)
+        payload = meta.get_json()
+        self.assertEqual(payload["google_site_verification"], "google-token-123")
+        self.assertEqual(payload["bing_site_verification"], "bing-token-456")
+        self.assertIn("/sitemap.xml", payload["sitemap"])
+        self.assertEqual(key.status_code, 200)
+        self.assertEqual(key.get_data(as_text=True).strip(), "abc123indexkey")
+        self.assertEqual(key.headers.get("Cache-Control"), "public, max-age=300")
 
     def test_public_homepage_is_cacheable_for_crawlers(self):
         response = self.client.get("/")
