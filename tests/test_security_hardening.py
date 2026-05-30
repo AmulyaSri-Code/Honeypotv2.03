@@ -87,6 +87,25 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertIn("Content-Security-Policy", response.headers)
         self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
         self.assertEqual(response.headers.get("Permissions-Policy"), "geolocation=(), microphone=(), camera=()")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+
+    def test_public_discovery_files_are_indexable_and_reference_public_url(self):
+        with patch.dict(api.os.environ, {"HONEYPOT_PUBLIC_URL": "https://example.com/honeypot"}, clear=False):
+            robots = self.client.get("/robots.txt")
+            sitemap = self.client.get("/sitemap.xml")
+
+        self.assertEqual(robots.status_code, 200)
+        self.assertIn("Allow: /", robots.get_data(as_text=True))
+        self.assertIn("Sitemap: https://example.com/honeypot/sitemap.xml", robots.get_data(as_text=True))
+        self.assertEqual(robots.headers.get("Cache-Control"), "public, max-age=300")
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertIn("<loc>https://example.com/honeypot/</loc>", sitemap.get_data(as_text=True))
+        self.assertEqual(sitemap.headers.get("Cache-Control"), "public, max-age=300")
+
+    def test_public_homepage_is_cacheable_for_crawlers(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Cache-Control"), "public, max-age=300")
 
     def test_main_defaults_dashboard_bind_to_loopback(self):
         with patch.dict(main.os.environ, {}, clear=True):

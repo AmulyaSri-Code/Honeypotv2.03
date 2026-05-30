@@ -133,6 +133,7 @@ HONEYPOT_ENRICHMENT_PROVIDER=ip-api
 HONEYPOT_BIND_HOST=127.0.0.1
 HONEYPOT_SENSOR_BIND_HOST=127.0.0.1
 HONEYPOT_DASHBOARD_PORT=5050
+HONEYPOT_PUBLIC_URL=https://your-domain.example
 HONEYPOT_ALERTS_ENABLED=false
 HONEYPOT_ALERT_MIN_SEVERITY=high
 N8N_WEBHOOK_URL=
@@ -140,6 +141,7 @@ N8N_WEBHOOK_URL=
 
 Security guidance:
 
+- Set `HONEYPOT_PUBLIC_URL` to the exact public HTTPS origin before submitting `https://your-domain.example/sitemap.xml` in Google Search Console
 - Keep `.env`, `honeypot.db`, logs, API keys, bot tokens, webhook URLs, and captured payloads out of git
 - Keep `HONEYPOT_BIND_HOST=127.0.0.1` unless the dashboard is behind a firewall, VPN, reverse proxy auth, or equivalent control
 - Use `HONEYPOT_SENSOR_BIND_HOST=0.0.0.0` only when intentionally exposing sensors in a controlled lab/network

@@ -247,7 +247,10 @@ def apply_security_headers(resp):
         "connect-src 'self' https://*.basemaps.cartocdn.com; "
         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     )
-    resp.headers["Cache-Control"] = "no-store"
+    if request.path in {"/", "/robots.txt", "/sitemap.xml"}:
+        resp.headers["Cache-Control"] = "public, max-age=300"
+    else:
+        resp.headers["Cache-Control"] = "no-store"
     for header, value in deception_headers().items():
         resp.headers[header] = value
     if os.environ.get("HONEYPOT_RESPONSE_JITTER_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}:
@@ -281,6 +284,43 @@ def bootstrap_admin():
 @app.route("/")
 def index():
     return send_from_directory("dashboard", "index.html")
+
+
+def public_base_url() -> str:
+    configured = os.environ.get("HONEYPOT_PUBLIC_URL", "").strip()
+    base = configured or request.url_root
+    return base.rstrip("/")
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    base = public_base_url()
+    body = "\n".join([
+        "User-agent: *",
+        "Allow: /",
+        f"Sitemap: {base}/sitemap.xml",
+        "",
+    ])
+    return Response(body, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    base = public_base_url()
+    today = datetime.now(timezone.utc).date().isoformat()
+    urls = [
+        ("/", "1.0"),
+        ("/api/meta", "0.4"),
+        ("/api/docs", "0.7"),
+    ]
+    urlset = "".join(
+        f"<url><loc>{base}{path}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>{priority}</priority></url>"
+        for path, priority in urls
+    )
+    return Response(
+        f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urlset}</urlset>',
+        mimetype="application/xml",
+    )
 
 @app.route("/api/meta")
 def meta():

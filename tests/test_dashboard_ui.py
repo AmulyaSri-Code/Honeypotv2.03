@@ -54,7 +54,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("grid-template-columns: 1fr", self.html)
     def test_dashboard_has_soc_navigation_and_operator_workbench(self):
         required = [
-            "<title>HoneyPot v3</title>",
+            "<title>HoneyPot v3 | Defensive Honeypot Threat Intelligence Dashboard</title>",
             "HoneyPot v3 Defense Console",
             "Defense Console",
             "id=\"nav-overview\"",
@@ -105,6 +105,19 @@ class DashboardUiTests(unittest.TestCase):
     def test_alert_channel_panel_includes_n8n_automation(self):
         self.assertIn("Slack · Telegram · Discord · n8n", self.html)
         self.assertIn("'slack','telegram','discord','n8n'", self.html)
+
+    def test_dashboard_exposes_indexable_seo_content(self):
+        required = [
+            "name=\"description\"",
+            "name=\"robots\" content=\"index, follow, max-image-preview:large\"",
+            "property=\"og:title\"",
+            "application/ld+json",
+            "class=\"seo-summary\"",
+            "Open-source defensive honeypot and threat intelligence dashboard",
+        ]
+        for snippet in required:
+            with self.subTest(snippet=snippet):
+                self.assertIn(snippet, self.html)
 
 
 if __name__ == "__main__":
