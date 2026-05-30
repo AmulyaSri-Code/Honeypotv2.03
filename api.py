@@ -6,6 +6,7 @@ import os
 import sqlite3
 import logging
 import json
+import time
 from functools import wraps
 from datetime import datetime, timezone
 from flask import Flask, jsonify, send_from_directory, request, Response
@@ -17,6 +18,7 @@ load_env_file()
 from honeypot import Logger, HoneypotDatabase, SSHService, FTPService, HTTPService, TelnetService, NCService
 from app_meta import APP_NAME, APP_TAGLINE, APP_VERSION
 from notifications import provider_status, send_alert, severity_for_category
+from v31_core import DECOY_SWAGGER, deception_headers, fake_stack_trace, response_jitter_seconds
 from security import (
     hash_password,
     verify_password,
@@ -246,6 +248,10 @@ def apply_security_headers(resp):
         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     )
     resp.headers["Cache-Control"] = "no-store"
+    for header, value in deception_headers().items():
+        resp.headers[header] = value
+    if os.environ.get("HONEYPOT_RESPONSE_JITTER_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}:
+        time.sleep(response_jitter_seconds(request.path))
     return resp
 
 
@@ -284,6 +290,32 @@ def meta():
         "version": APP_VERSION,
         "auth": ["Bearer", "ApiKey", "Basic (legacy for admin endpoints)"],
     })
+
+
+@app.route("/api/docs")
+def decoy_api_docs():
+    return Response(
+        "<html><body><h1>Acme Customer Portal API</h1>"
+        "<p>Internal API documentation. See /swagger.json.</p>"
+        "<code>/api/v1/customers</code><br>"
+        "<code>/api/v1/invoices</code><br>"
+        "<code>/api/v1/admin/reports</code>"
+        "</body></html>",
+        mimetype="text/html",
+    )
+
+
+@app.route("/swagger.json")
+def decoy_swagger_json():
+    return jsonify(DECOY_SWAGGER)
+
+
+@app.errorhandler(404)
+def decoy_not_found(error):
+    wants_json = request.path.startswith("/api/") or "application/json" in request.headers.get("Accept", "")
+    if wants_json:
+        return jsonify({"error": "Not Found", "trace": fake_stack_trace(404, request.path)}), 404
+    return Response(fake_stack_trace(404, request.path), 404, mimetype="text/plain")
 
 
 @app.route("/api/health")

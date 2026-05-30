@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
+from datetime import datetime, timedelta, timezone
 import urllib.parse
 import urllib.request
 from ipaddress import ip_address
@@ -22,6 +24,57 @@ ENABLE_EXTERNAL = os.environ.get("HONEYPOT_ENRICHMENT_ENABLED", "true").strip().
     "no",
     "off",
 }
+
+
+CACHE_TTL_HOURS = int(os.environ.get("HONEYPOT_ENRICHMENT_CACHE_TTL_HOURS", "24"))
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def init_enrichment_cache(db_path: str) -> None:
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS enrichment_cache (
+            ip TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            cached_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def store_enrichment_cache(db_path: str, ip: str, data: dict, cached_at: str | None = None) -> None:
+    init_enrichment_cache(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT OR REPLACE INTO enrichment_cache (ip, data, cached_at) VALUES (?, ?, ?)",
+        (ip, json.dumps(data, sort_keys=True), cached_at or _utc_now()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_enrichment_cache(db_path: str, ip: str, ttl_hours: int = CACHE_TTL_HOURS) -> dict | None:
+    init_enrichment_cache(db_path)
+    conn = sqlite3.connect(db_path)
+    row = conn.execute("SELECT data, cached_at FROM enrichment_cache WHERE ip=?", (ip,)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    try:
+        cached_at = datetime.fromisoformat(str(row[1]).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if datetime.now(timezone.utc) - cached_at > timedelta(hours=ttl_hours):
+        return None
+    data = json.loads(row[0])
+    data["enrichment_provider"] = "cache"
+    return data
 
 
 def is_public_ip(ip: str) -> bool:
@@ -113,9 +166,13 @@ def enrich_with_ip_api(ip: str) -> dict | None:
     }
 
 
-def enrich_ip(ip: str) -> dict:
+def enrich_ip(ip: str, cache_db_path: str | None = None) -> dict:
     if not ip or not is_public_ip(ip):
         return local_enrichment(ip)
+    if cache_db_path:
+        cached = get_enrichment_cache(cache_db_path, ip)
+        if cached:
+            return cached
     if not ENABLE_EXTERNAL:
         result = local_enrichment(ip)
         result.update({"asn_org": "External enrichment disabled", "enrichment_provider": "disabled"})
@@ -132,4 +189,6 @@ def enrich_ip(ip: str) -> dict:
         result = local_enrichment(ip)
         result.update({"asn_org": "Enrichment unavailable", "enrichment_provider": "ip-api"})
         return result
+    if cache_db_path:
+        store_enrichment_cache(cache_db_path, ip, enriched)
     return enriched

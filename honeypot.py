@@ -23,6 +23,7 @@ load_env_file()
 
 from app_meta import APP_NAME, APP_VERSION
 from notifications import send_alert_async, severity_for_category
+from v31_core import deception_headers, detect_collaborator_payload, fingerprint_http_request
 from enrichment import enrich_ip
 
 try:
@@ -173,7 +174,7 @@ class HoneypotDatabase:
             country, city, region, isp = loc["c"], "Demo Node", "Simulated", "Global Botnet"
             lat, lon = loc["lat"] + random.uniform(-4, 4), loc["lon"] + random.uniform(-4, 4)
 
-        enrichment = enrich_ip(ip)
+        enrichment = enrich_ip(ip, cache_db_path=self.db_path)
         country = country or enrichment.get("country")
         city = city or enrichment.get("city")
         region = region or enrichment.get("region")
@@ -561,10 +562,22 @@ def _handle_http(sock, addr, port, log, db):
         if d:
             line = (d.split("\r\n") or d.split("\n") or [""])[0]
             atk = predict_attack(line)
+            collaborator = detect_collaborator_payload(d)
+            if collaborator:
+                atk = "Burp Collaborator Trap"
+                db.log_command(ip, "http", f"collaborator:{collaborator['domain']}", cid, atk)
+            fp = fingerprint_http_request(d)
             log.log_cmd(ip, port, "http", line, atk)
-            db.log_command(ip, "http", line, cid, atk)
+            db.log_command(ip, "http", f"{line} [fp:{fp['fingerprint']} ua:{fp['user_agent']}]", cid, atk)
         body = b"<html><body><h1>Welcome</h1></body></html>"
-        sock.send(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n" % len(body) + body)
+        header_lines = [
+            "HTTP/1.1 200 OK",
+            "Content-Type: text/html",
+            f"Content-Length: {len(body)}",
+        ]
+        header_lines.extend(f"{name}: {value}" for name, value in deception_headers().items())
+        response = ("\r\n".join(header_lines) + "\r\n\r\n").encode() + body
+        sock.send(response)
     except Exception as e: log.err("http", str(e))
     finally: sock.close()
     db.update_session_duration(cid, int(time.time() - start))
