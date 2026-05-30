@@ -94,3 +94,27 @@ Remaining v3.1 next steps:
 3. Add persistent session replay storage and /api/sessions/<id>/replay.
 4. Add response fingerprint randomization to selected API responses carefully so dashboard code is not broken.
 5. Add measurable performance/stress tests for high traffic.
+
+---
+Fast search indexing session
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Implemented fast indexing support:
+- Expanded /robots.txt with Host and sitemap discovery.
+- Expanded /sitemap.xml to include homepage, robots.txt, sitemap.xml, public metadata, decoy docs, swagger JSON, and IndexNow key URL when configured.
+- Added /indexnow-key.txt for IndexNow verification when HONEYPOT_INDEXNOW_KEY is set.
+- Added /api/indexing/meta for public indexing metadata, sitemap location, verification tokens, and URL list.
+- Added scripts/ping_indexing.py to submit URLs to IndexNow after deployment.
+- Documented HONEYPOT_INDEXNOW_KEY, HONEYPOT_GOOGLE_SITE_VERIFICATION, HONEYPOT_BING_SITE_VERIFICATION, and the fast-indexing checklist in README.md and .env.example.
+
+Verification:
+- Targeted tests: 14 passed, 12 subtests passed.
+- Full suite: 66 passed, 56 subtests passed.
+- IndexNow dry-run payload validated without contacting external services.
+
+Deployment action still required after public hosting is live:
+1. Set HONEYPOT_PUBLIC_URL to the exact HTTPS domain.
+2. Set HONEYPOT_INDEXNOW_KEY.
+3. Submit /sitemap.xml in Google Search Console and Bing Webmaster Tools.
+4. Run scripts/ping_indexing.py against the live URL.
