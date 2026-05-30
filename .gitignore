@@ -10,3 +10,5 @@ honeypot_out.log
 honeypot.db-shm
 honeypot.db-wal
 .DS_Store
+reports/
+path/to/
