@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,6 +101,30 @@ class SetupConfigTests(unittest.TestCase):
                     os.environ.pop("HONEYPOT_DASHBOARD_PORT", None)
                 else:
                     os.environ["HONEYPOT_DASHBOARD_PORT"] = old_port
+
+    def test_quick_deploy_assets_exist_and_keep_generated_credentials_ignored(self):
+        quick_script = ROOT / "scripts" / "quick_deploy.sh"
+        quick_docs = ROOT / "QUICK_DEPLOY.md"
+        makefile = ROOT / "Makefile"
+        gitignore = (ROOT / ".gitignore").read_text()
+
+        self.assertTrue(quick_script.exists())
+        self.assertIn("quick_deploy.sh docker", quick_docs.read_text())
+        self.assertIn("deploy:", makefile.read_text())
+        self.assertIn(".deploy-credentials.txt", gitignore)
+
+    def test_quick_deploy_help_is_fast_and_documents_modes(self):
+        result = subprocess.run(
+            ["bash", "scripts/quick_deploy.sh", "help"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("quick_deploy.sh docker", result.stderr)
+        self.assertIn("quick_deploy.sh local", result.stderr)
 
 
 if __name__ == "__main__":

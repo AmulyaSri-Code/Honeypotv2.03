@@ -118,3 +118,15 @@ Deployment action still required after public hosting is live:
 2. Set HONEYPOT_INDEXNOW_KEY.
 3. Submit /sitemap.xml in Google Search Console and Bing Webmaster Tools.
 4. Run scripts/ping_indexing.py against the live URL.
+
+---
+Easy deployment update
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Added a one-command quick deployment flow for normal users:
+- scripts/quick_deploy.sh docker: generates .env secrets, builds and starts Docker, health-checks /api/health, and saves credentials in .deploy-credentials.txt.
+- scripts/quick_deploy.sh local: creates .venv, installs requirements, generates local .env, and trains the ML model.
+- QUICK_DEPLOY.md: short end-user deployment guide with Docker, local Python, reverse-proxy, stop/update, and troubleshooting commands.
+- Makefile: deploy/local/status/logs/stop/test shortcuts.
+- docker-compose.yml: safer defaults with private dashboard/n8n/tool ports, named data/log volumes, required n8n encryption key, and no Docker socket autoheal.
+- README.md now puts quick deploy first.
+Verification: docker compose config passed; bash syntax/help checks passed; full pytest suite passed (77 passed, 56 subtests passed).

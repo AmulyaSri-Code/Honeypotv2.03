@@ -1,4 +1,3 @@
-
 services:
   honeypot:
     build: .
@@ -6,19 +5,20 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      HONEYPOT_DB_PATH: ${HONEYPOT_DB_PATH:-/app/data/honeypot.db}
+      HONEYPOT_BIND_HOST: ${HONEYPOT_BIND_HOST:-0.0.0.0}
+      HONEYPOT_DASHBOARD_PORT: ${HONEYPOT_DASHBOARD_PORT:-5050}
     ports:
-      - "2222:2222"   # SSH
-      - "2121:2121"   # FTP
-      - "8080:8080"   # HTTP
-      - "2323:2323"   # Telnet
-      - "4444:4444"   # NC
-      - "5050:5050"   # Dashboard API
+      - "2222:2222"       # SSH sensor
+      - "2121:2121"       # FTP sensor
+      - "8080:8080"       # HTTP sensor / trap paths
+      - "2323:2323"       # Telnet sensor
+      - "4444:4444"       # TCP/NC sensor
+      - "127.0.0.1:5050:5050" # Dashboard/API: private by default; put TLS/VPN/reverse proxy in front
     volumes:
-      - ./honeypot.db:/app/honeypot.db
-      - ./honeypot.log:/app/honeypot.log
-      - ./honeypot_out.log:/app/honeypot_out.log
-    labels:
-      - autoheal=true
+      - honeypot_data:/app/data
+      - honeypot_logs:/app/logs
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/api/health', timeout=3)"]
       interval: 30s
@@ -27,97 +27,7 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  autoheal:
-    image: willfarrell/autoheal:latest
-    container_name: honeypot_autoheal
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=autoheal
-      - AUTOHEAL_INTERVAL=10
-      - CURL_TIMEOUT=30
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
-    container_name: honeypot_elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    ports:
-      - "9200:9200"
-    volumes:
-      - elastic_data:/usr/share/elasticsearch/data
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.14.3
-    container_name: honeypot_logstash
-    depends_on:
-      - elasticsearch
-      - honeypot
-    volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
-      - ./honeypot.log:/var/log/honeypot/honeypot.log:ro
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.14.3
-    container_name: honeypot_kibana
-    depends_on:
-      - elasticsearch
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  elasticvue:
-    image: cars10/elasticvue:latest
-    container_name: honeypot_elasticvue
-    depends_on:
-      - elasticsearch
-    ports:
-      - "8088:8080"
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  cyberchef:
-    image: ghcr.io/gchq/cyberchef:latest
-    container_name: honeypot_cyberchef
-    ports:
-      - "8089:80"
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  spiderfoot:
-    image: spiderfoot/spiderfoot:latest
-    container_name: honeypot_spiderfoot
-    ports:
-      - "5001:5001"
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
-  suricata:
-    image: jasonish/suricata:latest
-    container_name: honeypot_suricata
-    command: ["-i", "eth0"]
-    network_mode: "host"
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-      - SYS_NICE
-    volumes:
-      - ./suricata/log:/var/log/suricata
-      - ./suricata/rules:/var/lib/suricata/rules
-    restart: unless-stopped
-    profiles: ["ecosystem"]
-
+  # Optional local automation. Start with: docker compose --profile automation up -d n8n
   n8n:
     image: n8nio/n8n:latest
     container_name: honeypot_n8n
@@ -129,13 +39,39 @@ services:
       - N8N_PROTOCOL=http
       - N8N_DIAGNOSTICS_ENABLED=false
       - N8N_PERSONALIZATION_ENABLED=false
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-replace_with_a_32_plus_character_secret}
-      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set_N8N_ENCRYPTION_KEY_in_.env}
+      - WEBHOOK_URL=${N8N_WEBHOOK_PUBLIC_URL:-http://localhost:5678/}
     volumes:
       - n8n_data:/home/node/.n8n
     restart: unless-stopped
     profiles: ["automation"]
 
+  # Optional analyst tools. They are private/local by default.
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: honeypot_kibana
+    ports:
+      - "127.0.0.1:5601:5601"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  cyberchef:
+    image: ghcr.io/gchq/cyberchef:latest
+    container_name: honeypot_cyberchef
+    ports:
+      - "127.0.0.1:8089:80"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
+  spiderfoot:
+    image: spiderfoot/spiderfoot:latest
+    container_name: honeypot_spiderfoot
+    ports:
+      - "127.0.0.1:5001:5001"
+    restart: unless-stopped
+    profiles: ["ecosystem"]
+
 volumes:
-  elastic_data:
+  honeypot_data:
+  honeypot_logs:
   n8n_data:

@@ -201,7 +201,7 @@ app = Flask(__name__, static_folder="dashboard", static_url_path="")
 werkzeug_log = logging.getLogger('werkzeug')
 werkzeug_log.setLevel(logging.ERROR)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "honeypot.db")
+DB_PATH = os.environ.get("HONEYPOT_DB_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "honeypot.db")
 
 # Global honeypot services
 log = Logger()
@@ -1034,6 +1034,19 @@ def attacks():
 @requires_token()
 def alerts_status():
     return jsonify(provider_status())
+
+
+@app.route("/api/sessions/<int:connection_id>/replay")
+@requires_token()
+def session_replay(connection_id):
+    db = HoneypotDatabase(DB_PATH)
+    try:
+        asciicast = db.render_session_replay(connection_id)
+    finally:
+        db.close()
+    if not asciicast:
+        return jsonify({"error": "Session replay not found"}), 404
+    return app.response_class(asciicast, mimetype="application/x-asciicast")
 
 
 @app.route("/api/alerts/test", methods=["POST"])

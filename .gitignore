@@ -12,3 +12,4 @@ honeypot.db-wal
 .DS_Store
 reports/
 path/to/
+.deploy-credentials.txt

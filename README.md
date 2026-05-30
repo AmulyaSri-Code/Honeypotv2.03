@@ -45,47 +45,10 @@ Default ports:
 
 ## Quick Start
 
-### 1. Create a virtual environment
+### Fastest path: Docker
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 2. Create local configuration
-
-Interactive setup:
-
-```bash
-python setup.py
-```
-
-Non-interactive setup:
-
-```bash
-python setup.py --non-interactive \
-  --admin-user operator \
-  --admin-pass 'StrongPass123!' \
-  --bind-host 127.0.0.1 \
-  --dashboard-port 5050
-```
-
-The setup helper writes `.env` with owner-only permissions and generates a strong `HONEYPOT_AUTH_SECRET`.
-
-For local-only testing, the built-in dashboard login can be `admin / admin`. For any shared, networked, or production deployment, replace it with a strong password before exposure.
-
-### 3. Train or refresh the ML model
-
-```bash
-python ml/train.py
-```
-
-### 4. Run HoneyPot v3
-
-```bash
-python main.py
+./scripts/quick_deploy.sh docker
 ```
 
 Open:
@@ -93,6 +56,45 @@ Open:
 ```text
 http://localhost:5050
 ```
+
+The script generates `.env`, saves the one-time dashboard login in `.deploy-credentials.txt`, builds the container, starts HoneyPot v3, and checks `/api/health`.
+
+Useful commands:
+
+```bash
+make logs      # follow container logs
+make status    # show Docker status
+make stop      # stop the stack
+```
+
+Full quick-deploy guide:
+
+```text
+QUICK_DEPLOY.md
+```
+
+### Local Python path
+
+```bash
+./scripts/quick_deploy.sh local
+.venv/bin/python main.py
+```
+
+Manual setup still works if you prefer step-by-step configuration:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python setup.py
+python ml/train.py
+python main.py
+```
+
+The setup helper writes `.env` with owner-only permissions and generates a strong `HONEYPOT_AUTH_SECRET`.
+
+For local-only testing, the built-in dashboard login can be `admin / admin`. For any shared, networked, or production deployment, replace it with a strong password before exposure.
 
 ## Website Backend Integration
 

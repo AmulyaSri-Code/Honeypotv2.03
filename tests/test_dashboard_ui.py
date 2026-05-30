@@ -106,7 +106,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("Slack · Telegram · Discord · n8n", self.html)
         self.assertIn("'slack','telegram','discord','n8n'", self.html)
 
-    def test_dashboard_exposes_indexable_seo_content(self):
+    def test_dashboard_exposes_fast_indexing_metadata(self):
         required = [
             "name=\"description\"",
             "name=\"robots\" content=\"index, follow, max-image-preview:large\"",

@@ -23,7 +23,14 @@ load_env_file()
 
 from app_meta import APP_NAME, APP_VERSION
 from notifications import send_alert_async, severity_for_category
-from v31_core import deception_headers, detect_collaborator_payload, fingerprint_http_request
+from v31_core import (
+    EventWriteBuffer,
+    LazyClassifier,
+    SessionReplay,
+    deception_headers,
+    detect_collaborator_payload,
+    fingerprint_http_request,
+)
 from enrichment import enrich_ip
 
 try:
@@ -71,13 +78,34 @@ class HoneypotDatabase:
     def __init__(self, db_path="honeypot.db"):
         self.db_path = db_path
         self._local = threading.local()
+        self._write_lock = threading.RLock()
         self._init_db()
+        self.command_buffer = EventWriteBuffer(
+            flush_interval=float(os.environ.get("HONEYPOT_DB_FLUSH_INTERVAL", "0.5")),
+            sink=self._write_command_batch,
+        )
+        if os.environ.get("HONEYPOT_DB_BUFFER_AUTOSTART", "true").strip().lower() in {"1", "true", "yes", "on"}:
+            self.command_buffer.start()
 
     def _get_conn(self):
         if not hasattr(self._local, "conn"):
-            self._local.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            self._local.conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=30)
             self._local.conn.row_factory = sqlite3.Row
+            self._local.conn.execute("PRAGMA busy_timeout=30000;")
         return self._local.conn
+
+    def _execute_with_retry(self, operation, attempts=5):
+        last_error = None
+        for attempt in range(attempts):
+            try:
+                with self._write_lock:
+                    return operation()
+            except sqlite3.OperationalError as exc:
+                last_error = exc
+                if "locked" not in str(exc).lower() or attempt == attempts - 1:
+                    raise
+                time.sleep(0.05 * (2 ** attempt))
+        raise last_error
 
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -133,6 +161,14 @@ class HoneypotDatabase:
                 updated_at TEXT NOT NULL,
                 closed_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS session_replay_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                connection_id INTEGER NOT NULL,
+                offset_sec REAL NOT NULL,
+                stream TEXT NOT NULL DEFAULT 'o',
+                data TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_connections_ip ON connections(ip);
             CREATE INDEX IF NOT EXISTS idx_commands_ip ON commands(ip);
             CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -140,6 +176,7 @@ class HoneypotDatabase:
             CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active);
             CREATE INDEX IF NOT EXISTS idx_cases_status ON cases(status);
             CREATE INDEX IF NOT EXISTS idx_cases_source_ip ON cases(source_ip);
+            CREATE INDEX IF NOT EXISTS idx_replay_connection ON session_replay_events(connection_id);
         """)
         migrations = [
             ("commands", "attack_category", "TEXT"),
@@ -182,34 +219,36 @@ class HoneypotDatabase:
         lon = lon if lon is not None else enrichment.get("lon")
         isp = isp or enrichment.get("isp")
         raw_geo = raw_geo or enrichment.get("raw_geo")
-        c = self._get_conn()
-        cur = c.cursor()
-        cur.execute("""INSERT INTO connections (ip, port, service, timestamp, country, city,
-            region, lat, lon, isp, raw_geo, asn, asn_org, reputation_score, reputation_level, reputation_flags, enrichment_provider)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                ip, port, service, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z",
-                country, city, region, lat, lon, isp, raw_geo, enrichment.get("asn"),
-                enrichment.get("asn_org"), int(enrichment.get("reputation_score") or 0),
-                enrichment.get("reputation_level"), json.dumps(enrichment.get("reputation_flags") or []),
-                enrichment.get("enrichment_provider"),
-            ))
-        c.commit()
-        return cur.lastrowid
+
+        def write_connection():
+            c = self._get_conn()
+            cur = c.cursor()
+            cur.execute("""INSERT INTO connections (ip, port, service, timestamp, country, city,
+                region, lat, lon, isp, raw_geo, asn, asn_org, reputation_score, reputation_level, reputation_flags, enrichment_provider)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    ip, port, service, datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z",
+                    country, city, region, lat, lon, isp, raw_geo, enrichment.get("asn"),
+                    enrichment.get("asn_org"), int(enrichment.get("reputation_score") or 0),
+                    enrichment.get("reputation_level"), json.dumps(enrichment.get("reputation_flags") or []),
+                    enrichment.get("enrichment_provider"),
+                ))
+            c.commit()
+            return cur.lastrowid
+
+        return self._execute_with_retry(write_connection)
 
     def log_command(self, ip, service, command, connection_id=None, attack_category=None):
         command = sanitize_event_text(command)
-        c = self._get_conn()
-        cur = c.cursor()
-        if connection_id:
-            cur.execute("SELECT ip FROM connections WHERE id=?", (connection_id,))
-            row = cur.fetchone()
-            if row: ip = row[0]
         timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
-        cur.execute(
-            "INSERT INTO commands (connection_id, ip, service, command, timestamp, attack_category) VALUES (?,?,?,?,?,?)",
-            (connection_id, ip, service, command, timestamp, attack_category))
-        c.commit()
+        self.command_buffer.add({
+            "connection_id": connection_id,
+            "ip": ip,
+            "service": service,
+            "command": command,
+            "timestamp": timestamp,
+            "attack_category": attack_category,
+        })
         send_alert_async({
             "event_type": "command",
             "ip": ip,
@@ -220,11 +259,82 @@ class HoneypotDatabase:
             "severity": severity_for_category(attack_category),
         }, logging.getLogger("HoneypotAlerts"))
 
+    def _write_command_batch(self, batch):
+        def write_batch():
+            c = self._get_conn()
+            rows = []
+            for event in batch:
+                ip = event.get("ip")
+                connection_id = event.get("connection_id")
+                if connection_id:
+                    row = c.execute("SELECT ip FROM connections WHERE id=?", (connection_id,)).fetchone()
+                    if row:
+                        ip = row[0]
+                rows.append((
+                    connection_id,
+                    ip,
+                    event.get("service"),
+                    event.get("command"),
+                    event.get("timestamp"),
+                    event.get("attack_category"),
+                ))
+            c.executemany(
+                "INSERT INTO commands (connection_id, ip, service, command, timestamp, attack_category) VALUES (?,?,?,?,?,?)",
+                rows,
+            )
+            c.commit()
+            return len(rows)
+        return self._execute_with_retry(write_batch)
+
+    def flush_command_buffer(self):
+        return self.command_buffer.flush()
+
+    def update_commands_attack_category(self, connection_id, attack_category):
+        self.flush_command_buffer()
+        def update_batch():
+            c = self._get_conn()
+            c.execute(
+                "UPDATE commands SET attack_category=? WHERE connection_id=? AND (attack_category IS NULL OR attack_category='')",
+                (attack_category, connection_id),
+            )
+            c.commit()
+        return self._execute_with_retry(update_batch)
+
+    def record_session_replay(self, connection_id, offset_sec, data, stream="o"):
+        data = sanitize_event_text(data, max_chars=MAX_CAPTURE_CHARS)
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
+        def write_replay():
+            c = self._get_conn()
+            c.execute(
+                "INSERT INTO session_replay_events (connection_id, offset_sec, stream, data, timestamp) VALUES (?,?,?,?,?)",
+                (connection_id, float(offset_sec or 0), stream or "o", data, timestamp),
+            )
+            c.commit()
+        return self._execute_with_retry(write_replay)
+
+    def render_session_replay(self, connection_id):
+        self.flush_command_buffer()
+        c = self._get_conn()
+        rows = c.execute(
+            "SELECT offset_sec, stream, data FROM session_replay_events WHERE connection_id=? ORDER BY offset_sec, id",
+            (connection_id,),
+        ).fetchall()
+        replay = SessionReplay()
+        for row in rows:
+            replay.record(row["offset_sec"], row["data"], row["stream"])
+        return replay.to_asciinema() if rows else None
+
     def update_session_duration(self, conn_id, duration_sec):
-        self._get_conn().execute("UPDATE connections SET session_duration_sec=? WHERE id=?", (duration_sec, conn_id))
-        self._get_conn().commit()
+        self.flush_command_buffer()
+        def update_duration():
+            c = self._get_conn()
+            c.execute("UPDATE connections SET session_duration_sec=? WHERE id=?", (duration_sec, conn_id))
+            c.commit()
+        return self._execute_with_retry(update_duration)
 
     def close(self):
+        if hasattr(self, "command_buffer"):
+            self.command_buffer.stop()
         if hasattr(self._local, "conn"):
             self._local.conn.close()
             del self._local.conn
@@ -253,6 +363,26 @@ def get_geolocation(ip):
             return d if d.get("status") == "success" else None
     except Exception:
         return None
+
+
+def log_sensor_connection(db, ip, port, service):
+    """Log a sensor connection through the cached enrichment path only."""
+    return db.log_connection(ip, port, service)
+
+
+def classify_session_after_disconnect(db, connection_id, commands, predict_fn=None):
+    """Classify a completed session asynchronously and update uncategorized commands."""
+    classifier = LazyClassifier(predict_fn or predict_attack, max_workers=1)
+
+    def classify_and_update():
+        try:
+            result = classifier._classify(connection_id, list(commands))
+            db.update_commands_attack_category(connection_id, result.get("attack_category") or "Unknown")
+            return result
+        finally:
+            classifier.queue.shutdown(wait=False)
+
+    return classifier.queue.submit(classify_and_update)
 
 # --- Fake shell ---
 FAKE_LS = "total 48\ndrwxr-xr-x  4 root root  4096 Feb  8 10:23 .\ndrwxr-xr-x  5 root root  4096 Feb  6 14:12 ..\ndrwxr-xr-x  2 root root  4096 Feb  7 09:15 documents\n-rw-r--r--  1 root root  2048 Feb  8 10:20 config.ini\n-rw-r--r--  1 root root  5120 Feb  7 16:45 database.sql\n"
@@ -381,6 +511,7 @@ if paramiko:
     class FakeSSH(paramiko.ServerInterface):
         def __init__(self, ip, port, logger, db):
             self.ip, self.port, self.logger, self.db, self.conn_id = ip, port, logger, db, None
+            self.commands = []
 
         def get_allowed_auths(self, username):
             return "password"
@@ -392,9 +523,9 @@ if paramiko:
             if not pw:
                 return paramiko.AUTH_FAILED
             cmd = f"auth:{user}:{pw}"
-            atk = predict_attack(cmd)
-            self.logger.log_cmd(self.ip, self.port, "ssh", cmd, atk)
-            self.db.log_command(self.ip, "ssh", cmd, self.conn_id, atk)
+            self.commands.append(cmd)
+            self.logger.log_cmd(self.ip, self.port, "ssh", cmd)
+            self.db.log_command(self.ip, "ssh", cmd, self.conn_id)
             return paramiko.AUTH_SUCCESSFUL
 
         def check_channel_request(self, kind, chanid):
@@ -408,13 +539,11 @@ if paramiko:
 
     def _handle_ssh(sock, addr, port, log, db):
         ip = addr[0]
-        geo = get_geolocation(ip)
-        cid = db.log_connection(ip, port, "ssh", geo.get("country") if geo else None,
-            geo.get("city") if geo else None, geo.get("regionName") if geo else None,
-            geo.get("lat") if geo else None, geo.get("lon") if geo else None,
-            geo.get("isp") if geo else None, str(geo) if geo else None)
-        log.log_conn(ip, port, "ssh", "connected", f"{geo.get('country','N/A')}/{geo.get('city','N/A')}" if geo else "")
+        cid = log_sensor_connection(db, ip, port, "ssh")
+        log.log_conn(ip, port, "ssh", "connected", "enrichment cached")
         start = time.time()
+        session_commands = []
+        srv = None
         try:
             t = paramiko.Transport(sock)
             t.add_server_key(HOST_KEY)
@@ -436,9 +565,9 @@ if paramiko:
                                 ch.send(b"\r\n")
                                 cmd = cmd_buffer.strip()
                                 if cmd:
-                                    atk = predict_attack(cmd)
-                                    log.log_cmd(ip, port, "ssh", cmd, atk)
-                                    db.log_command(ip, "ssh", cmd, cid, atk)
+                                    session_commands.append(cmd)
+                                    log.log_cmd(ip, port, "ssh", cmd)
+                                    db.log_command(ip, "ssh", cmd, cid)
                                     out, cwd = get_shell_response(cmd, cwd)
                                     if out:
                                         out = out.replace('\n', '\r\n')
@@ -461,6 +590,10 @@ if paramiko:
             try: sock.close()
             except: pass
         db.update_session_duration(cid, int(time.time() - start))
+        if srv and srv.commands:
+            session_commands.extend(srv.commands)
+        if session_commands:
+            classify_session_after_disconnect(db, cid, session_commands)
 
     class SSHService(Service):
         def start(self):
@@ -494,13 +627,10 @@ else:
 # --- FTP ---
 def _handle_ftp(sock, addr, port, log, db):
     ip = addr[0]
-    geo = get_geolocation(ip)
-    cid = db.log_connection(ip, port, "ftp", geo.get("country") if geo else None,
-        geo.get("city") if geo else None, geo.get("regionName") if geo else None,
-        geo.get("lat") if geo else None, geo.get("lon") if geo else None,
-        geo.get("isp") if geo else None, str(geo) if geo else None)
-    log.log_conn(ip, port, "ftp", "connected", geo.get("country","N/A") if geo else "")
+    cid = log_sensor_connection(db, ip, port, "ftp")
+    log.log_conn(ip, port, "ftp", "connected", "enrichment cached")
     start = time.time()
+    session_commands = []
     def send(m): sock.send((m + "\r\n").encode())
     try:
         sock.settimeout(300)
@@ -510,9 +640,9 @@ def _handle_ftp(sock, addr, port, log, db):
                 d = sock.recv(1024).decode("utf-8", errors="ignore").strip()
                 if not d: break
                 c = (d.split(None, 1) or [""])[0].upper()
-                atk = predict_attack(d)
-                log.log_cmd(ip, port, "ftp", d, atk)
-                db.log_command(ip, "ftp", d, cid, atk)
+                session_commands.append(d)
+                log.log_cmd(ip, port, "ftp", d)
+                db.log_command(ip, "ftp", d, cid)
                 if c == "USER": send("331 Password required")
                 elif c == "PASS": send("230 Login successful")
                 elif c == "PWD": send('257 "/home/admin"')
@@ -524,6 +654,8 @@ def _handle_ftp(sock, addr, port, log, db):
     finally: sock.close()
     dur = int(time.time() - start)
     db.update_session_duration(cid, dur)
+    if session_commands:
+        classify_session_after_disconnect(db, cid, session_commands)
 
 class FTPService(Service):
     def start(self):
@@ -549,26 +681,25 @@ class FTPService(Service):
 # --- HTTP ---
 def _handle_http(sock, addr, port, log, db):
     ip = addr[0]
-    geo = get_geolocation(ip)
-    cid = db.log_connection(ip, port, "http", geo.get("country") if geo else None,
-        geo.get("city") if geo else None, geo.get("regionName") if geo else None,
-        geo.get("lat") if geo else None, geo.get("lon") if geo else None,
-        geo.get("isp") if geo else None, str(geo) if geo else None)
-    log.log_conn(ip, port, "http", "connected", geo.get("country","N/A") if geo else "")
+    cid = log_sensor_connection(db, ip, port, "http")
+    log.log_conn(ip, port, "http", "connected", "enrichment cached")
     start = time.time()
+    session_commands = []
     try:
         sock.settimeout(300)
         d = sock.recv(4096).decode("utf-8", errors="ignore")
         if d:
             line = (d.split("\r\n") or d.split("\n") or [""])[0]
-            atk = predict_attack(line)
+            atk = None
             collaborator = detect_collaborator_payload(d)
             if collaborator:
                 atk = "Burp Collaborator Trap"
                 db.log_command(ip, "http", f"collaborator:{collaborator['domain']}", cid, atk)
             fp = fingerprint_http_request(d)
+            captured = f"{line} [fp:{fp['fingerprint']} ua:{fp['user_agent']}]"
+            session_commands.append(captured)
             log.log_cmd(ip, port, "http", line, atk)
-            db.log_command(ip, "http", f"{line} [fp:{fp['fingerprint']} ua:{fp['user_agent']}]", cid, atk)
+            db.log_command(ip, "http", captured, cid, atk)
         body = b"<html><body><h1>Welcome</h1></body></html>"
         header_lines = [
             "HTTP/1.1 200 OK",
@@ -581,6 +712,8 @@ def _handle_http(sock, addr, port, log, db):
     except Exception as e: log.err("http", str(e))
     finally: sock.close()
     db.update_session_duration(cid, int(time.time() - start))
+    if session_commands:
+        classify_session_after_disconnect(db, cid, session_commands)
 
 class HTTPService(Service):
     def start(self):
@@ -614,13 +747,10 @@ def _strip_telnet(data):
 
 def _handle_telnet(sock, addr, port, log, db):
     ip = addr[0]
-    geo = get_geolocation(ip)
-    cid = db.log_connection(ip, port, "telnet", geo.get("country") if geo else None,
-        geo.get("city") if geo else None, geo.get("regionName") if geo else None,
-        geo.get("lat") if geo else None, geo.get("lon") if geo else None,
-        geo.get("isp") if geo else None, str(geo) if geo else None)
-    log.log_conn(ip, port, "telnet", "connected", geo.get("country","N/A") if geo else "")
+    cid = log_sensor_connection(db, ip, port, "telnet")
+    log.log_conn(ip, port, "telnet", "connected", "enrichment cached")
     start = time.time()
+    session_commands = []
     def send(m): sock.send((m + "\r\n").encode())
     try:
         sock.settimeout(300)
@@ -633,9 +763,9 @@ def _handle_telnet(sock, addr, port, log, db):
                 if not d: break
                 cmd = _strip_telnet(d)
                 if cmd:
-                    atk = predict_attack(cmd)
-                    log.log_cmd(ip, port, "telnet", cmd, atk)
-                    db.log_command(ip, "telnet", cmd, cid, atk)
+                    session_commands.append(cmd)
+                    log.log_cmd(ip, port, "telnet", cmd)
+                    db.log_command(ip, "telnet", cmd, cid)
                     out, cwd = get_shell_response(cmd, cwd)
                     if out: send(out.strip())
                     sock.send(f"admin@server01:{cwd}$ ".encode())
@@ -644,6 +774,8 @@ def _handle_telnet(sock, addr, port, log, db):
     finally: sock.close()
     dur = int(time.time() - start)
     db.update_session_duration(cid, dur)
+    if session_commands:
+        classify_session_after_disconnect(db, cid, session_commands)
 
 class TelnetService(Service):
     def start(self):
@@ -669,13 +801,10 @@ class TelnetService(Service):
 # --- NC ---
 def _handle_nc(sock, addr, port, log, db):
     ip = addr[0]
-    geo = get_geolocation(ip)
-    cid = db.log_connection(ip, port, "nc", geo.get("country") if geo else None,
-        geo.get("city") if geo else None, geo.get("regionName") if geo else None,
-        geo.get("lat") if geo else None, geo.get("lon") if geo else None,
-        geo.get("isp") if geo else None, str(geo) if geo else None)
-    log.log_conn(ip, port, "nc", "connected", geo.get("country","N/A") if geo else "")
+    cid = log_sensor_connection(db, ip, port, "nc")
+    log.log_conn(ip, port, "nc", "connected", "enrichment cached")
     start = time.time()
+    session_commands = []
     try:
         sock.settimeout(MIN_SESSION_SECONDS + 60)
         sock.send(b"Connected.\r\n")
@@ -685,14 +814,16 @@ def _handle_nc(sock, addr, port, log, db):
                 if not d: break
                 dec = d.decode("utf-8", errors="replace").strip()
                 if dec:
-                    atk = predict_attack(dec)
-                    log.log_cmd(ip, port, "nc", dec, atk)
-                    db.log_command(ip, "nc", dec, cid, atk)
+                    session_commands.append(dec)
+                    log.log_cmd(ip, port, "nc", dec)
+                    db.log_command(ip, "nc", dec, cid)
                     sock.send(b"ok\r\n")
             except (socket.timeout, ConnectionError, BrokenPipeError): break
     except Exception as e: log.err("nc", str(e))
     finally: sock.close()
     db.update_session_duration(cid, int(time.time() - start))
+    if session_commands:
+        classify_session_after_disconnect(db, cid, session_commands)
 
 class NCService(Service):
     def start(self):

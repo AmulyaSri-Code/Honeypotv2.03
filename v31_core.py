@@ -69,13 +69,22 @@ class EventWriteBuffer:
         with self._lock:
             self._events.append(dict(event))
 
+    def pending_count(self) -> int:
+        with self._lock:
+            return len(self._events)
+
     def flush(self) -> int:
         with self._lock:
             batch = self._events
             self._events = []
         if not batch:
             return 0
-        self.sink(batch)
+        try:
+            self.sink(batch)
+        except Exception:
+            with self._lock:
+                self._events = batch + self._events
+            raise
         return len(batch)
 
     def start(self):
@@ -86,7 +95,12 @@ class EventWriteBuffer:
         def loop():
             while self._running:
                 time.sleep(self.flush_interval)
-                self.flush()
+                try:
+                    self.flush()
+                except Exception:
+                    # Preserve the batch for the next flush attempt; callers can still
+                    # surface explicit flush failures during shutdown/tests.
+                    continue
 
         self._thread = threading.Thread(target=loop, daemon=True)
         self._thread.start()
