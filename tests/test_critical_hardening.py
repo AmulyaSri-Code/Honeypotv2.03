@@ -136,9 +136,10 @@ class CriticalHardeningTests(unittest.TestCase):
         self.assertNotIn("replace_with_a_32_plus_character_secret", text)
         self.assertIn("N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set_N8N_ENCRYPTION_KEY_in_.env}", text)
 
-    def test_dashboard_keeps_public_indexing_metadata_for_fast_discovery(self):
+    def test_dashboard_is_noindex_by_default(self):
         html = (ROOT / "dashboard" / "index.html").read_text()
-        self.assertIn('name="robots" content="index, follow, max-image-preview:large"', html)
+        self.assertIn('name="robots" content="noindex, nofollow"', html)
+        self.assertNotIn('index, follow, max-image-preview', html)
         self.assertIn('type="application/ld+json"', html)
 
 

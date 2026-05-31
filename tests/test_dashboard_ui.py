@@ -106,10 +106,10 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("Slack · Telegram · Discord · n8n", self.html)
         self.assertIn("'slack','telegram','discord','n8n'", self.html)
 
-    def test_dashboard_exposes_fast_indexing_metadata(self):
+    def test_dashboard_exposes_safe_operator_metadata_without_indexing_admin_ui(self):
         required = [
             "name=\"description\"",
-            "name=\"robots\" content=\"index, follow, max-image-preview:large\"",
+            "name=\"robots\" content=\"noindex, nofollow\"",
             "property=\"og:title\"",
             "application/ld+json",
             "class=\"seo-summary\"",
@@ -118,6 +118,7 @@ class DashboardUiTests(unittest.TestCase):
         for snippet in required:
             with self.subTest(snippet=snippet):
                 self.assertIn(snippet, self.html)
+        self.assertNotIn("index, follow, max-image-preview", self.html)
 
 
 if __name__ == "__main__":

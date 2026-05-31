@@ -89,7 +89,7 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertEqual(response.headers.get("Permissions-Policy"), "geolocation=(), microphone=(), camera=()")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
 
-    def test_public_discovery_files_are_indexable_and_reference_public_url(self):
+    def test_public_discovery_files_discourage_indexing_and_reference_public_url(self):
         with patch.dict(api.os.environ, {
             "HONEYPOT_PUBLIC_URL": "https://example.com/honeypot",
             "HONEYPOT_INDEXNOW_KEY": "abc123indexkey",
@@ -98,8 +98,9 @@ class SecurityHardeningTests(unittest.TestCase):
             sitemap = self.client.get("/sitemap.xml")
 
         self.assertEqual(robots.status_code, 200)
-        self.assertIn("Allow: /", robots.get_data(as_text=True))
-        self.assertIn("Sitemap: https://example.com/honeypot/sitemap.xml", robots.get_data(as_text=True))
+        self.assertIn("Disallow: /", robots.get_data(as_text=True))
+        self.assertNotIn("Allow: /", robots.get_data(as_text=True))
+        self.assertNotIn("Sitemap:", robots.get_data(as_text=True))
         self.assertIn("Host: https://example.com/honeypot", robots.get_data(as_text=True))
         self.assertEqual(robots.headers.get("Cache-Control"), "public, max-age=300")
         self.assertEqual(sitemap.status_code, 200)

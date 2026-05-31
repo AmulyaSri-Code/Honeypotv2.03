@@ -312,9 +312,8 @@ def robots_txt():
     base = public_base_url()
     body = "\n".join([
         "User-agent: *",
-        "Allow: /",
+        "Disallow: /",
         f"Host: {base}",
-        f"Sitemap: {base}/sitemap.xml",
         "",
     ])
     return Response(body, mimetype="text/plain")
