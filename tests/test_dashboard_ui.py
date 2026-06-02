@@ -29,11 +29,11 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("function submitLogin", self.html)
         self.assertIn("aria-modal=\"true\"", self.html)
 
-    def test_login_page_looks_like_real_auth_screen_and_mentions_local_defaults(self):
+    def test_login_page_looks_like_real_auth_screen_and_mentions_private_credentials(self):
         required = [
             "class=\"login-page\"",
-            "Default local login: admin / admin",
-            "placeholder=\"admin\"",
+            "Use the admin account created by setup.py",
+            "placeholder=\"operator\"",
             "autocomplete=\"current-password\"",
             "Sign in to dashboard",
         ]

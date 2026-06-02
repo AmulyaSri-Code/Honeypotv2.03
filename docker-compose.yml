@@ -8,7 +8,9 @@ services:
     environment:
       HONEYPOT_DB_PATH: ${HONEYPOT_DB_PATH:-/app/data/honeypot.db}
       HONEYPOT_BIND_HOST: ${HONEYPOT_BIND_HOST:-0.0.0.0}
+      HONEYPOT_SENSOR_BIND_HOST: ${HONEYPOT_SENSOR_BIND_HOST:-0.0.0.0}
       HONEYPOT_DASHBOARD_PORT: ${HONEYPOT_DASHBOARD_PORT:-5050}
+      HONEYPOT_ALLOW_DEFAULT_ADMIN: ${HONEYPOT_ALLOW_DEFAULT_ADMIN:-false}
     ports:
       - "2222:2222"       # SSH sensor
       - "2121:2121"       # FTP sensor

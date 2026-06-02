@@ -16,6 +16,7 @@ Important: HoneyPot v3 is for defensive monitoring only. Deploy it only on syste
 - ML-assisted command classification using TF-IDF and scikit-learn
 - Optional Slack, Discord, Telegram, and n8n automation alert delivery
 - Website-backend integration guide for routing suspicious paths from an existing site to HoneyPot v3
+- Private dashboard by default: `/` redirects to `/login`, login sets an HttpOnly session cookie, and all telemetry APIs require a bearer token or API key
 - Safer local defaults: dashboard and sensors bind to loopback unless explicitly configured otherwise
 - Docker Compose support for local deployment and optional security ecosystem services
 
@@ -51,13 +52,13 @@ Default ports:
 ./scripts/quick_deploy.sh docker
 ```
 
-Open:
+Open the private login page, then sign in with the one-time dashboard login saved by the deploy script:
 
 ```text
-http://localhost:5050
+http://localhost:5050/login
 ```
 
-The script generates `.env`, saves the one-time dashboard login in `.deploy-credentials.txt`, builds the container, starts HoneyPot v3, and checks `/api/health`.
+The script generates `.env`, saves the one-time dashboard login in `.deploy-credentials.txt`, builds the container, starts HoneyPot v3, and checks `/api/health`. After login, `/` serves the dashboard only to browsers with a valid HttpOnly session cookie. Telemetry APIs still require a bearer token or API key.
 
 Useful commands:
 
@@ -92,9 +93,7 @@ python ml/train.py
 python main.py
 ```
 
-The setup helper writes `.env` with owner-only permissions and generates a strong `HONEYPOT_AUTH_SECRET`.
-
-For local-only testing, the built-in dashboard login can be `admin / admin`. For any shared, networked, or production deployment, replace it with a strong password before exposure.
+For manual setup, open `http://localhost:5050/login` and use the admin account created by `setup.py`. The setup helper writes `.env` with owner-only permissions, generates a strong `HONEYPOT_AUTH_SECRET`, and disables default admin credentials. There is no built-in production dashboard password; create one with `setup.py` or the one-time `/api/auth/bootstrap` endpoint before going live.
 
 ## Website Backend Integration
 
@@ -135,6 +134,8 @@ HONEYPOT_ENRICHMENT_PROVIDER=ip-api
 HONEYPOT_BIND_HOST=127.0.0.1
 HONEYPOT_SENSOR_BIND_HOST=127.0.0.1
 HONEYPOT_DASHBOARD_PORT=5050
+HONEYPOT_ALLOW_DEFAULT_ADMIN=false
+HONEYPOT_COOKIE_SECURE=false
 HONEYPOT_PUBLIC_URL=https://your-domain.example
 HONEYPOT_INDEXNOW_KEY=
 HONEYPOT_GOOGLE_SITE_VERIFICATION=
@@ -148,7 +149,8 @@ Security guidance:
 
 - Set `HONEYPOT_PUBLIC_URL` to the exact public HTTPS origin before submitting `https://your-domain.example/sitemap.xml` in Google Search Console
 - Keep `.env`, `honeypot.db`, logs, API keys, bot tokens, webhook URLs, and captured payloads out of git
-- Keep `HONEYPOT_BIND_HOST=127.0.0.1` unless the dashboard is behind a firewall, VPN, reverse proxy auth, or equivalent control
+- Keep `HONEYPOT_BIND_HOST=127.0.0.1` unless the dashboard is inside a private Docker network or behind TLS, firewall/VPN, and reverse-proxy access controls
+- Set `HONEYPOT_COOKIE_SECURE=true` when serving the dashboard through HTTPS
 - Use `HONEYPOT_SENSOR_BIND_HOST=0.0.0.0` only when intentionally exposing sensors in a controlled lab/network
 - Rotate admin passwords, API keys, auth secrets, and alert webhooks regularly
 
@@ -182,6 +184,7 @@ Public endpoints:
 
 - `GET /api/meta`
 - `GET /api/health`
+- `GET /login`
 
 Authenticated telemetry endpoints:
 
@@ -193,8 +196,9 @@ Authenticated telemetry endpoints:
 
 Auth endpoints:
 
-- `POST /api/auth/bootstrap`
+- `POST /api/auth/bootstrap` (one-time only, before any user exists)
 - `POST /api/auth/login`
+- `POST /api/auth/logout`
 - `GET /api/auth/me`
 
 Enrichment, cases, and reports:

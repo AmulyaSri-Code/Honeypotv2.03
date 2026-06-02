@@ -32,6 +32,7 @@ python setup.py --non-interactive \
   --admin-user operator \
   --admin-pass 'replace-with-a-long-random-password' \
   --bind-host 127.0.0.1 \
+  --sensor-bind-host 0.0.0.0 \
   --dashboard-port 5050
 ```
 
@@ -44,12 +45,14 @@ HONEYPOT_AUTH_SECRET=long_random_token_urlsafe_secret
 HONEYPOT_BIND_HOST=127.0.0.1
 HONEYPOT_SENSOR_BIND_HOST=0.0.0.0
 HONEYPOT_TRUSTED_PROXIES=127.0.0.1
+HONEYPOT_ALLOW_DEFAULT_ADMIN=false
+HONEYPOT_COOKIE_SECURE=true
 HONEYPOT_RATE_LIMIT_PER_MIN=240
 HONEYPOT_ENRICHMENT_ENABLED=true
 HONEYPOT_ENRICHMENT_PROVIDER=ip-api
 ```
 
-Keep `.env`, webhook URLs, bot tokens, API keys, database files, and captured logs out of git.
+Keep `.env`, webhook URLs, bot tokens, API keys, database files, and captured logs out of git. The dashboard root redirects to `/login` unless the browser has a valid HttpOnly `honeypot_session` cookie; keep the dashboard endpoint private even with app-level auth enabled.
 
 ## Reverse proxy example
 
@@ -80,7 +83,7 @@ If the proxy is trusted, include its IP in `HONEYPOT_TRUSTED_PROXIES` so the API
 
 ## Docker deployment
 
-Use the committed compose file for the application and keep n8n private:
+Use the committed compose file for the application. It binds the dashboard to host loopback (`127.0.0.1:5050`) while allowing sensor ports through Docker, and keeps n8n private:
 
 ```bash
 cp .env.example .env

@@ -74,7 +74,7 @@ python setup.py --non-interactive \
   --dashboard-port 5050
 ```
 
-If your reverse proxy runs in a different container, use the Docker service name or private container network instead of public exposure.
+If your reverse proxy runs in a different container, use the Docker service name or private container network instead of public exposure. Keep `/login` and `/` for the dashboard behind VPN, IP allowlisting, or your admin-only reverse-proxy route; never route those dashboard paths to normal public visitors.
 
 ### 3. Start HoneyPot v3
 
@@ -256,6 +256,7 @@ services:
       HONEYPOT_BIND_HOST: 0.0.0.0
       HONEYPOT_SENSOR_BIND_HOST: 0.0.0.0
       HONEYPOT_DASHBOARD_PORT: 5050
+      HONEYPOT_ALLOW_DEFAULT_ADMIN: "false"
 
   proxy:
     image: nginx:alpine

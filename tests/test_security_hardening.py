@@ -42,7 +42,7 @@ class SecurityHardeningTests(unittest.TestCase):
         with patch.dict(api.os.environ, {}, clear=True):
             self.assertFalse(api.check_auth("admin", "secret"))
 
-    def test_bootstrap_admin_defaults_to_admin_admin_for_local_login(self):
+    def test_bootstrap_admin_requires_configured_credentials_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             test_db = f"{tmpdir}/honeypot.db"
             api.HoneypotDatabase(test_db)
@@ -55,31 +55,30 @@ class SecurityHardeningTests(unittest.TestCase):
                     json={"username": "admin", "password": "admin"},
                 )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.get_json().get("access_token"))
+        self.assertEqual(response.status_code, 401)
 
-    def test_bootstrap_refreshes_existing_builtin_admin_to_admin_password(self):
+    def test_bootstrap_admin_uses_explicit_env_credentials_and_sets_dashboard_cookie(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             test_db = f"{tmpdir}/honeypot.db"
             api.HoneypotDatabase(test_db)
-            conn = api.sqlite3.connect(test_db)
-            conn.execute(
-                "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', ?)",
-                ("admin", api.hash_password("old-secret"), api.utc_now()),
-            )
-            conn.commit()
-            conn.close()
-            with patch.object(api, "DB_PATH", test_db), patch.dict(api.os.environ, {}, clear=True):
+            env = {"HONEYPOT_ADMIN_USER": "operator", "HONEYPOT_ADMIN_PASS": "StrongPrivatePass123!"}
+            with patch.object(api, "DB_PATH", test_db), patch.dict(api.os.environ, env, clear=True):
                 api._request_attempts.clear()
                 api._login_attempts.clear()
                 api.bootstrap_admin()
                 response = self.client.post(
                     "/api/auth/login",
-                    json={"username": "admin", "password": "admin"},
+                    json={"username": "operator", "password": "StrongPrivatePass123!"},
                 )
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json().get("access_token"))
+        self.assertIn("honeypot_session=", response.headers.get("Set-Cookie", ""))
+
+    def test_dashboard_root_redirects_to_login_without_session_cookie(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers.get("Location", ""))
 
     def test_dashboard_security_headers_include_csp_and_permissions_policy(self):
         response = self.client.get("/api/health")
@@ -128,9 +127,10 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertEqual(key.get_data(as_text=True).strip(), "abc123indexkey")
         self.assertEqual(key.headers.get("Cache-Control"), "public, max-age=300")
 
-    def test_public_homepage_is_cacheable_for_crawlers(self):
+    def test_dashboard_homepage_redirects_to_private_login_without_session(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers.get("Location"), "/login")
         self.assertEqual(response.headers.get("Cache-Control"), "public, max-age=300")
 
     def test_main_defaults_dashboard_bind_to_loopback(self):

@@ -25,6 +25,7 @@ class SetupConfigTests(unittest.TestCase):
             admin_user="operator",
             admin_pass="StrongPass123!",
             bind_host="127.0.0.1",
+            sensor_bind_host="127.0.0.1",
             dashboard_port="5051",
             alerts_enabled=True,
             alert_min_severity="medium",
@@ -38,25 +39,19 @@ class SetupConfigTests(unittest.TestCase):
         self.assertEqual(config["HONEYPOT_ADMIN_USER"], "operator")
         self.assertEqual(config["HONEYPOT_ADMIN_PASS"], "StrongPass123!")
         self.assertEqual(config["HONEYPOT_BIND_HOST"], "127.0.0.1")
+        self.assertEqual(config["HONEYPOT_SENSOR_BIND_HOST"], "127.0.0.1")
         self.assertEqual(config["HONEYPOT_DASHBOARD_PORT"], "5051")
         self.assertEqual(config["HONEYPOT_ALERTS_ENABLED"], "true")
         self.assertEqual(config["HONEYPOT_ALERT_MIN_SEVERITY"], "medium")
         self.assertEqual(config["N8N_WEBHOOK_URL"], "https://n8n.test/webhook/honeypot")
         self.assertTrue(config["HONEYPOT_AUTH_SECRET"])
         self.assertNotEqual(config["HONEYPOT_AUTH_SECRET"], "change-me-in-production")
-
-    def test_default_local_credentials_can_be_admin_admin(self):
-        setup = load_setup_module()
-
-        config = setup.build_env_config(admin_user="admin", admin_pass="admin")
-
-        self.assertEqual(config["HONEYPOT_ADMIN_USER"], "admin")
-        self.assertEqual(config["HONEYPOT_ADMIN_PASS"], "admin")
+        self.assertEqual(config["HONEYPOT_ALLOW_DEFAULT_ADMIN"], "false")
 
     def test_weak_or_default_admin_password_is_rejected(self):
         setup = load_setup_module()
 
-        for bad_password in ("secret", "password", "123"):
+        for bad_password in ("secret", "password", "admin", "123", "shortpass") :
             with self.subTest(bad_password=bad_password):
                 with self.assertRaises(ValueError):
                     setup.build_env_config(admin_user="admin", admin_pass=bad_password)

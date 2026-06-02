@@ -5,8 +5,11 @@ services:
     env_file:
       - .env
     environment:
+      # Bind inside the container to all interfaces; host publish below keeps dashboard private on loopback.
       HONEYPOT_BIND_HOST: 0.0.0.0
+      HONEYPOT_SENSOR_BIND_HOST: 0.0.0.0
       HONEYPOT_DASHBOARD_PORT: 5050
+      HONEYPOT_ALLOW_DEFAULT_ADMIN: "false"
     ports:
       # Public decoy services. Restrict with cloud firewall/security groups where possible.
       - "2222:2222"

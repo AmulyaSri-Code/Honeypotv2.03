@@ -10,7 +10,7 @@ import time
 from html import escape
 from functools import wraps
 from datetime import datetime, timezone
-from flask import Flask, jsonify, send_from_directory, request, Response
+from flask import Flask, jsonify, send_from_directory, request, Response, redirect
 
 from env_loader import load_env_file
 
@@ -32,6 +32,7 @@ from security import (
 LOGIN_WINDOW_SECONDS = 60
 LOGIN_MAX_ATTEMPTS = 8
 TOKEN_TTL_SECONDS = int(os.environ.get("HONEYPOT_TOKEN_TTL_SECONDS", "28800"))
+DASHBOARD_COOKIE_NAME = "honeypot_session"
 REQUEST_WINDOW_SECONDS = 60
 REQUEST_MAX_PER_WINDOW = int(os.environ.get("HONEYPOT_RATE_LIMIT_PER_MIN", "240"))
 _login_attempts = {}
@@ -52,6 +53,13 @@ def requires_auth(f):
             return Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
         return f(*args, **kwargs)
     return decorated
+
+
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on", "y"}
 
 
 def utc_now():
@@ -165,6 +173,25 @@ def validate_api_key(role=None):
     return {"username": f"api_key:{row['name']}", "role": row["role"], "auth_type": "api_key"}
 
 
+def _dashboard_cookie_valid():
+    token = request.cookies.get(DASHBOARD_COOKIE_NAME, "")
+    if not token:
+        return False
+    return verify_token(token, TOKEN_TTL_SECONDS) is not None
+
+
+def _set_dashboard_cookie(resp, token):
+    resp.set_cookie(
+        DASHBOARD_COOKIE_NAME,
+        token,
+        max_age=TOKEN_TTL_SECONDS,
+        httponly=True,
+        secure=_env_bool("HONEYPOT_COOKIE_SECURE", False),
+        samesite=os.environ.get("HONEYPOT_COOKIE_SAMESITE", "Strict"),
+    )
+    return resp
+
+
 def requires_token(role=None, allow_basic_fallback=False):
     def decorator(f):
         @wraps(f)
@@ -262,8 +289,18 @@ def apply_security_headers(resp):
 def bootstrap_admin():
     env_user_set = "HONEYPOT_ADMIN_USER" in os.environ
     env_pass_set = "HONEYPOT_ADMIN_PASS" in os.environ
+    allow_default = _env_bool("HONEYPOT_ALLOW_DEFAULT_ADMIN", False)
+    if env_user_set != env_pass_set:
+        raise RuntimeError("Set both HONEYPOT_ADMIN_USER and HONEYPOT_ADMIN_PASS, or neither.")
+    if not env_user_set and not allow_default:
+        log.info("No admin credentials configured. Run setup.py or POST /api/auth/bootstrap before using the dashboard.")
+        return
+
     username = os.environ.get("HONEYPOT_ADMIN_USER", "admin")
     password = os.environ.get("HONEYPOT_ADMIN_PASS", "admin")
+    if allow_default and username == "admin" and password == "admin":
+        log.info("Using opt-in local default admin/admin. Do not deploy this to a shared or public environment.")
+
     conn = get_db()
     row = conn.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
     if not row:
@@ -272,18 +309,38 @@ def bootstrap_admin():
             (username, hash_password(password), utc_now()),
         )
         conn.commit()
-        log.info("Bootstrapped admin account from environment.")
-    elif not env_user_set and not env_pass_set and username == "admin":
+        log.info("Bootstrapped admin account from configured credentials.")
+    elif env_user_set or allow_default:
         conn.execute(
             "UPDATE users SET password_hash=? WHERE id=?",
-            (hash_password("admin"), row["id"]),
+            (hash_password(password), row["id"]),
         )
         conn.commit()
-        log.info("Refreshed built-in local admin account to default credentials.")
+        log.info("Refreshed configured admin account password.")
     conn.close()
+
+
+LOGIN_PAGE_HTML = """<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  <title>HoneyPot v3 Sign In</title>
+  <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#05070d;color:#edf4ff;font-family:Inter,system-ui,sans-serif}.card{width:min(420px,92vw);padding:32px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(13,18,31,.9);box-shadow:0 24px 80px rgba(0,0,0,.45)}h1{margin:0 0 10px}p{color:#9aa7bd;line-height:1.5}label{display:block;margin:18px 0 6px;color:#cbd5e1}input,button{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.14);padding:13px 14px;font:inherit}input{background:#090d18;color:#edf4ff}button{margin-top:22px;border:0;background:linear-gradient(135deg,#20d5ff,#6677ff);color:#fff;font-weight:800;cursor:pointer}.err{min-height:22px;margin-top:14px;color:#ff6b86}</style>
+</head>
+<body><form class=\"card\" id=\"login-form\"><h1>Sign in to HoneyPot v3</h1><p>Authorized operators only. Successful login unlocks the private dashboard for this browser session.</p><label>Username</label><input id=\"username\" autocomplete=\"username\" required autofocus><label>Password</label><input id=\"password\" type=\"password\" autocomplete=\"current-password\" required><button type=\"submit\">Unlock dashboard</button><div class=\"err\" id=\"err\"></div></form><script>document.getElementById('login-form').addEventListener('submit',async e=>{e.preventDefault();const err=document.getElementById('err');err.textContent='';const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value.trim(),password:document.getElementById('password').value})});if(!res.ok){err.textContent='Login failed. Check credentials.';return}const data=await res.json();sessionStorage.setItem('honeypot_access_token',data.access_token);location.href='/'})</script></body></html>"""
+
+@app.route("/login")
+def login_page():
+    if _dashboard_cookie_valid():
+        return redirect("/")
+    return Response(LOGIN_PAGE_HTML, mimetype="text/html")
+
 
 @app.route("/")
 def index():
+    if not _dashboard_cookie_valid():
+        return redirect("/login")
     return send_from_directory("dashboard", "index.html")
 
 
@@ -361,7 +418,7 @@ def meta():
         "name": APP_NAME,
         "tagline": APP_TAGLINE,
         "version": APP_VERSION,
-        "auth": ["Bearer", "ApiKey", "Basic (legacy for admin endpoints)"],
+        "auth": ["Bearer", "ApiKey", "HttpOnly session cookie for dashboard"],
     })
 
 
@@ -426,12 +483,13 @@ def auth_login():
     conn.close()
     token = create_token({"username": user["username"], "role": user["role"]})
     log_audit(user["username"], "auth.login", details="User authenticated successfully")
-    return jsonify({
+    response = jsonify({
         "access_token": token,
         "token_type": "Bearer",
         "expires_in_seconds": TOKEN_TTL_SECONDS,
         "user": {"username": user["username"], "role": user["role"]},
     })
+    return _set_dashboard_cookie(response, token)
 
 
 @app.route("/api/auth/bootstrap", methods=["POST"])
@@ -463,6 +521,13 @@ def auth_bootstrap():
 @requires_token()
 def auth_me():
     return jsonify({"user": {"username": request.user["username"], "role": request.user["role"]}})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    response = jsonify({"success": True})
+    response.delete_cookie(DASHBOARD_COOKIE_NAME)
+    return response
 
 
 @app.route("/api/users", methods=["GET"])
