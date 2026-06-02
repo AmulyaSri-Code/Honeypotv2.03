@@ -19,6 +19,7 @@ The script creates:
 - `.env` with generated secrets and safe defaults
 - `.deploy-credentials.txt` with the generated dashboard login
 - Docker volumes for persistent database/log storage
+- Docker mode writes `HONEYPOT_DB_PATH=/app/data/honeypot.db`; local mode writes a project-local `honeypot.db` path so host Python does not try to use Docker-only directories.
 
 Useful commands:
 

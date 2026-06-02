@@ -22,12 +22,19 @@ from app_meta import APP_NAME, APP_TAGLINE, APP_VERSION
 from notifications import provider_status, send_alert, severity_for_category
 from v31_core import DECOY_SWAGGER, deception_headers, fake_stack_trace, response_jitter_seconds
 from security import (
+    DEFAULT_AUTH_SECRET,
+    MIN_ADMIN_PASSWORD_LENGTH,
+    MIN_AUTH_SECRET_LENGTH,
+    admin_password_is_strong,
+    auth_secret_is_strong,
+    bootstrap_token_is_strong,
     hash_password,
     verify_password,
     create_token,
     verify_token,
     generate_api_key,
     hash_api_key,
+    is_development_mode,
 )
 
 LOGIN_WINDOW_SECONDS = 60
@@ -61,6 +68,50 @@ def _env_bool(name, default=False):
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on", "y"}
+
+
+def validate_production_startup_config():
+    """Fail closed on unsafe production auth/bootstrap configuration."""
+    if is_development_mode():
+        return True
+
+    auth_secret = os.environ.get("HONEYPOT_AUTH_SECRET", DEFAULT_AUTH_SECRET)
+    if not auth_secret_is_strong(auth_secret):
+        raise RuntimeError(
+            f"HONEYPOT_AUTH_SECRET must be a custom random value at least {MIN_AUTH_SECRET_LENGTH} characters in production."
+        )
+
+    admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS")
+    if admin_pass is not None and not admin_password_is_strong(admin_pass):
+        raise RuntimeError(
+            f"HONEYPOT_ADMIN_PASS must be at least {MIN_ADMIN_PASSWORD_LENGTH} characters and not a known default in production."
+        )
+
+    if _env_bool("HONEYPOT_ALLOW_DEFAULT_ADMIN", False):
+        raise RuntimeError("HONEYPOT_ALLOW_DEFAULT_ADMIN cannot be enabled in production.")
+
+    if _env_bool("HONEYPOT_ENABLE_REMOTE_BOOTSTRAP", False):
+        token = os.environ.get("HONEYPOT_BOOTSTRAP_TOKEN", "")
+        if not bootstrap_token_is_strong(token):
+            raise RuntimeError("Remote bootstrap requires HONEYPOT_BOOTSTRAP_TOKEN with at least 32 characters.")
+    return True
+
+
+def _is_loopback_ip(ip):
+    return ip in {"127.0.0.1", "::1", "localhost"} or str(ip).startswith("127.")
+
+
+def _bootstrap_request_authorized():
+    configured_token = os.environ.get("HONEYPOT_BOOTSTRAP_TOKEN", "").strip()
+    supplied_token = (
+        request.headers.get("X-Bootstrap-Token", "").strip()
+        or (request.get_json(silent=True) or {}).get("bootstrap_token", "")
+    )
+    if configured_token:
+        return supplied_token == configured_token
+    if _env_bool("HONEYPOT_ENABLE_REMOTE_BOOTSTRAP", False):
+        return False
+    return _is_loopback_ip(request.remote_addr or "")
 
 
 def utc_now():
@@ -291,6 +342,8 @@ def bootstrap_admin():
     env_user_set = "HONEYPOT_ADMIN_USER" in os.environ
     env_pass_set = "HONEYPOT_ADMIN_PASS" in os.environ
     allow_default = _env_bool("HONEYPOT_ALLOW_DEFAULT_ADMIN", False)
+    if allow_default and not is_development_mode():
+        raise RuntimeError("HONEYPOT_ALLOW_DEFAULT_ADMIN is only allowed when HONEYPOT_ENV/FLASK_ENV is development.")
     if env_user_set != env_pass_set:
         raise RuntimeError("Set both HONEYPOT_ADMIN_USER and HONEYPOT_ADMIN_PASS, or neither.")
     if not env_user_set and not allow_default:
@@ -301,6 +354,8 @@ def bootstrap_admin():
     password = os.environ.get("HONEYPOT_ADMIN_PASS", "admin")
     if allow_default and username == "admin" and password == "admin":
         log.info("Using opt-in local default admin/admin. Do not deploy this to a shared or public environment.")
+    elif not is_development_mode() and not admin_password_is_strong(password):
+        raise RuntimeError(f"HONEYPOT_ADMIN_PASS must be at least {MIN_ADMIN_PASSWORD_LENGTH} characters and not a known default in production.")
 
     conn = get_db()
     row = conn.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
@@ -495,6 +550,8 @@ def auth_login():
 
 @app.route("/api/auth/bootstrap", methods=["POST"])
 def auth_bootstrap():
+    if not _bootstrap_request_authorized():
+        return jsonify({"error": "Bootstrap requires loopback access or a valid X-Bootstrap-Token"}), 403
     conn = get_db()
     any_user = conn.execute("SELECT id FROM users LIMIT 1").fetchone()
     if any_user:
@@ -504,9 +561,9 @@ def auth_bootstrap():
     body = request.get_json(silent=True) or {}
     username = (body.get("username") or "").strip()
     password = body.get("password") or ""
-    if len(username) < 3 or len(password) < 8:
+    if len(username) < 3 or not admin_password_is_strong(password):
         conn.close()
-        return jsonify({"error": "username >= 3 chars and password >= 8 chars required"}), 400
+        return jsonify({"error": f"username >= 3 chars and password >= {MIN_ADMIN_PASSWORD_LENGTH} chars, non-default required"}), 400
 
     conn.execute(
         "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', ?)",
@@ -680,8 +737,8 @@ def _risk_level(score):
 
 
 def _deployment_checks():
-    auth_secret = os.environ.get("HONEYPOT_AUTH_SECRET", "change-me-in-production")
-    admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS", "secret")
+    auth_secret = os.environ.get("HONEYPOT_AUTH_SECRET", DEFAULT_AUTH_SECRET)
+    admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS", "")
     public_bind = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1") == "0.0.0.0"
     alert_status = provider_status()
     alert_configured = any(p["configured"] for p in alert_status["providers"].values())
@@ -689,14 +746,14 @@ def _deployment_checks():
         {
             "id": "auth_secret",
             "label": "Authentication signing secret",
-            "status": "warn" if auth_secret in ("change-me-in-production", "") else "pass",
-            "message": "Set HONEYPOT_AUTH_SECRET to a long random value before deployment." if auth_secret in ("change-me-in-production", "") else "Custom token signing secret configured.",
+            "status": "pass" if auth_secret_is_strong(auth_secret) else "warn",
+            "message": f"Set HONEYPOT_AUTH_SECRET to a custom random value at least {MIN_AUTH_SECRET_LENGTH} characters before deployment." if not auth_secret_is_strong(auth_secret) else "Custom token signing secret configured.",
         },
         {
             "id": "admin_password",
             "label": "Admin bootstrap password",
-            "status": "warn" if admin_pass in ("secret", "change_this_now", "") else "pass",
-            "message": "Replace the default admin password before exposing the dashboard." if admin_pass in ("secret", "change_this_now", "") else "Admin password is not using the known default.",
+            "status": "pass" if admin_password_is_strong(admin_pass) else "warn",
+            "message": f"Set HONEYPOT_ADMIN_PASS to at least {MIN_ADMIN_PASSWORD_LENGTH} characters and avoid defaults before exposing the dashboard." if not admin_password_is_strong(admin_pass) else "Admin password passes the baseline strength check.",
         },
         {
             "id": "bind_host",

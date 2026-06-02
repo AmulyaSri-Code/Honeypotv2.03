@@ -130,3 +130,538 @@ Added a one-command quick deployment flow for normal users:
 - docker-compose.yml: safer defaults with private dashboard/n8n/tool ports, named data/log volumes, required n8n encryption key, and no Docker socket autoheal.
 - README.md now puts quick deploy first.
 Verification: docker compose config passed; bash syntax/help checks passed; full pytest suite passed (77 passed, 56 subtests passed).
+
+---
+Team 3 Strategic Thinking Session
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 25%
+
+Team 3 role for this project:
+Team 3 should operate as the hardcore thinking, real-life problem solving, mentorship, and cross-team guidance unit for HoneyPot v3. Their job is not only to suggest features, but to guide every other team step by step so the project becomes useful for real website owners, developers, and small security teams.
+
+Core Team 3 mindset:
+- Think like real users: website owners, developers, SOC analysts, students, and small businesses.
+- Think like real attackers only for defensive planning: scanners, botnets, credential stuffers, exposed admin hunters, and noisy exploit probes.
+- Think like mentors: explain what to do next, why it matters, how to verify it, and what risk it reduces.
+- Think like project architects: connect code, deployment, docs, dashboard, alerts, and business value into one smooth experience.
+
+Immediate Team 3 priorities:
+1. Real-life deployment clarity
+   - Make sure a normal website owner can understand where HoneyPot v3 sits beside their real website.
+   - Keep the sidecar pattern simple: normal traffic goes to the real backend, suspicious trap paths go to the honeypot sensor, dashboard stays private.
+   - Push other teams to avoid unsafe public dashboard exposure.
+
+2. Step-by-step mentorship for other teams
+   - For backend/API teams: guide them to keep secrets hidden, validate auth, keep payloads safe, and expose clean status endpoints.
+   - For dashboard/UI teams: guide them to show clear risk, alert readiness, case workload, and next recommended analyst action.
+   - For deployment/DevOps teams: guide them to verify Docker, reverse proxy, private bindings, volumes, and health checks.
+   - For automation teams: guide them to make n8n/Slack/Telegram optional, tested, and easy to connect without leaking tokens.
+   - For documentation teams: guide them to write examples that real owners can copy without confusion.
+
+3. Real-world project questions Team 3 should keep asking
+   - Can a non-expert deploy this in less than 10 minutes?
+   - Can a website owner connect it without breaking their real site?
+   - Can an analyst tell what happened, how bad it is, and what to do next?
+   - Are dashboard/admin surfaces private by default?
+   - Are logs, database files, credentials, and captured payloads treated safely?
+   - Are alerts actually deliverable, or only configured halfway?
+   - Does every feature have tests and a verification path?
+
+4. Product direction
+   - HoneyPot v3 should feel like a lightweight defensive deception platform, not only a code demo.
+   - The strongest value is practical integration: quick deploy, website sidecar routing, private dashboard, alert automation, case management, reports, and clear docs.
+   - The project should help users learn security while also being deployable on owned infrastructure.
+
+5. Suggested next mentoring plan
+   - Step 1: Review current quick deploy and website integration docs as if helping a first-time website owner.
+   - Step 2: Create a simple "which setup should I choose?" decision guide: local lab, Docker sidecar, production reverse proxy, automation-enabled setup.
+   - Step 3: Make a cross-team checklist for release readiness: security, usability, deployment, docs, tests, and cleanup.
+   - Step 4: Ask each team to report blockers in one format: problem, impact, exact file/feature, proposed fix, verification.
+   - Step 5: Convert the best guidance into docs, dashboard hints, and setup checks so mentorship becomes built into the product.
+
+Team 3 guiding principle:
+Every improvement should make HoneyPot v3 easier to deploy safely, easier to understand, easier to verify, and more useful for real-life defensive projects.
+
+---
+Team 3 Missing Pieces / Real-World Readiness Audit
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 65%
+
+Verification completed:
+- Python compile check passed.
+- Full pytest suite passed: 77 passed, 58 subtests passed.
+- docker compose config passed for default compose.
+- docker compose -f docker-compose.production.yml config passed.
+- scripts/quick_deploy.sh bash syntax passed.
+- Git state: only Honeypot_drv.txt is modified; runtime artifacts remain ignored/local.
+
+What looks strong already:
+- Dashboard root redirects to login.
+- Sensitive telemetry APIs require token/API-key auth.
+- Admin-only API routes exist for users, API keys, service toggles, alerts test, and audit logs.
+- Docker dashboard is loopback-bound by default on host port 5050.
+- Setup helper generates local secrets and writes .env with owner-only permissions.
+- Tests are currently healthy.
+- Website sidecar integration guide is already a strong direction.
+
+Highest-priority missing pieces:
+1. .dockerignore does not exclude .env/.env.* and other runtime artifacts.
+   - Risk: Dockerfile uses COPY . ., so local secrets can be baked into images during docker build.
+   - Fix: add .env, .env.*, *.db, *.log, *.sqlite*, reports/, .pytest_cache/, and local credential files to .dockerignore.
+
+2. /api/auth/bootstrap can be claimed on first boot if the empty-DB service is exposed too early.
+   - Risk: attacker can create the first admin before the owner.
+   - Fix: require a one-time bootstrap token, loopback-only bootstrap, or explicit HONEYPOT_ENABLE_REMOTE_BOOTSTRAP with a strong secret.
+
+3. Production secret enforcement is still warn-only.
+   - Risk: HONEYPOT_AUTH_SECRET can fall back to change-me-in-production if deployed incorrectly.
+   - Fix: fail startup in production when auth secret is missing/default/too short; enforce strong HONEYPOT_ADMIN_PASS at runtime too.
+
+4. Local quick deploy likely uses Docker DB path for local Python mode.
+   - Risk: local run can fail with unable-to-open database because HONEYPOT_DB_PATH=/app/data/honeypot.db is Docker-specific.
+   - Fix: local mode should use ./honeypot.db or omit HONEYPOT_DB_PATH; Docker mode should use /app/data/honeypot.db.
+
+5. Production Docker hardening is incomplete.
+   - Missing: read-only root filesystem plan, resource limits, pids_limit, ulimits, log rotation, image pinning/update policy, backup/restore procedure.
+   - Fix: harden docker-compose.production.yml and add operator guidance.
+
+6. Fresh production compose may mount missing host DB/log files badly.
+   - Risk: bind-mounted ./honeypot.db and logs are gitignored and may not exist on new host; Docker may create directories or fail unexpectedly.
+   - Fix: use named volumes /app/data and /app/logs consistently, or preflight-create files with correct permissions.
+
+7. README architecture mentions missing core/ and services/ directories.
+   - Risk: contributors look for modules that do not exist.
+   - Fix: update docs to match current single-file service structure or actually split into core/ and services/.
+
+8. Robots/indexing docs contradict implementation.
+   - README talks about crawler discovery, but /robots.txt currently returns Disallow: / and no Sitemap line, and tests enforce that.
+   - Fix: decide whether public indexing is desired; align README, api.py, tests, and dashboard noindex metadata.
+
+9. Dashboard JS verification docs are stale.
+   - README extraction command can check JSON-LD as JavaScript and fail falsely.
+   - Fix: filter only JavaScript script tags and check the actual generated file names.
+
+10. Dashboard tests are mostly static string checks.
+   - Risk: dashboard runtime behavior can break while tests pass.
+   - Fix: add Playwright/jsdom tests for login, authenticated fetch headers, dashboard rendering, service toggle, alert test, navigation, and API error states.
+
+11. n8n workflow validation/import is incomplete.
+   - Current tests validate JSON lightly; setup script imports critical-alert workflow but not daily/weekly report workflow by default.
+   - Fix: validate workflow schema/connections/code nodes and document/import report workflow separately or import both.
+
+12. Real-user docs need Team 3 mentorship structure.
+   - Missing: setup chooser, troubleshooting runbook, canonical go-live checklist, release checklist, backup/restore guide, upgrade/rollback guide, cloud firewall examples, and first-login onboarding.
+
+13. Naming/versioning is inconsistent.
+   - Product docs mix HoneyPot v3 and Honeypotv2.03, and some docs include local absolute paths.
+   - Fix: standardize product naming and replace local paths with generic /opt/honeypot-v3 or ~/honeypot-v3 in user-facing docs.
+
+Recommended Team 3 next work order:
+1. Fix .dockerignore secret-build risk.
+2. Fix local quick deploy DB path.
+3. Add production fail-closed preflight for auth secret/admin password.
+4. Lock down first-boot bootstrap flow.
+5. Harden production compose with resource/log limits and safer volumes.
+6. Correct stale docs: README architecture, robots/indexing, JS check, ecosystem services.
+7. Add TROUBLESHOOTING.md and SETUP_CHOOSER.md or a README setup chooser section.
+8. Add GO_LIVE_CHECKLIST.md and RELEASE_CHECKLIST.md.
+9. Add browser/dashboard runtime tests and clean API test DB isolation.
+10. Improve n8n workflow validation and report workflow import path.
+
+Team 3 guidance to other teams:
+- Security team: fail closed on secrets and bootstrap, protect local artifacts, harden Docker.
+- Deployment team: make Docker/local paths reliable, add preflight checks and troubleshooting.
+- Docs team: remove stale/conflicting instructions and create owner-friendly checklists.
+- Dashboard team: add real runtime tests and first-login onboarding.
+- Automation team: make n8n critical alerts and reports separately verifiable.
+- Product team: add setup chooser and real-world mentor-style step-by-step paths.
+
+---
+Team 3 How and Why Action List
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 70%
+
+1. Secret-safe Docker builds
+   How:
+   - Update .dockerignore to exclude .env, .env.*, databases, logs, reports, caches, local credentials, and generated runtime files.
+   - Build Docker images only from clean source + safe examples.
+   - Verify with docker build context checks and git status.
+   Why:
+   - Dockerfile copies the project into the image. If .env enters the build context, real secrets can become permanent image-layer history.
+   - This protects admin passwords, auth tokens, webhooks, and captured telemetry.
+
+2. Safe first-admin bootstrap
+   How:
+   - Protect /api/auth/bootstrap with a one-time bootstrap token.
+   - Allow remote bootstrap only when explicitly enabled.
+   - Prefer loopback-only bootstrap for default deployments.
+   - Add tests for empty-DB bootstrap behavior.
+   Why:
+   - On a fresh deployment, the first admin account is the highest-value moment.
+   - If exposed publicly before setup, an attacker could claim ownership.
+
+3. Production fail-closed secret checks
+   How:
+   - Add startup preflight checks for production mode.
+   - Refuse startup if HONEYPOT_AUTH_SECRET is missing/default/too short.
+   - Refuse startup if HONEYPOT_ADMIN_PASS is default/weak when env bootstrap is used.
+   - Keep local/dev escape hatches explicit and documented.
+   Why:
+   - Warnings are not enough in production.
+   - A default signing secret can let attackers forge sessions/tokens.
+   - Strong fail-closed behavior prevents accidental unsafe deployments.
+
+4. Fix local vs Docker quick deploy paths
+   How:
+   - Generate different DB/log paths for local and Docker modes.
+   - Docker mode: /app/data/honeypot.db.
+   - Local mode: ./honeypot.db or an absolute path inside the project.
+   - Add a health check after local setup.
+   Why:
+   - /app/data works inside containers, not normal host Python.
+   - First-time users should not hit database path failures after running the quick-start command.
+
+5. Harden production Docker Compose
+   How:
+   - Add pids_limit, memory/CPU limits, ulimits, Docker log rotation, and safer restart policy.
+   - Move mutable files to named volumes like /app/data and /app/logs.
+   - Work toward read_only: true with tmpfs for /tmp.
+   - Pin external images or document update policy.
+   Why:
+   - Honeypots face hostile traffic by design.
+   - Attackers can try to exhaust memory, threads, disk, or logs.
+   - Production containers need guardrails before public exposure.
+
+6. Add deployment troubleshooting runbook
+   How:
+   - Create TROUBLESHOOTING.md.
+   - Include sections for health check failure, port already used, database permission errors, login problems, reverse proxy IP problems, sensors not reachable, and alerts not firing.
+   - For every problem, list exact commands, expected output, and fix.
+   Why:
+   - Real users get stuck during setup.
+   - A good product does not just install; it helps users recover when something breaks.
+
+7. Add setup chooser
+   How:
+   - Add a clear setup chooser near the top of README.md and QUICK_DEPLOY.md.
+   - Paths: local lab, Docker quick deploy, website sidecar, public decoy VPS, automation/n8n setup.
+   - Include difficulty, estimated time, risk level, and what not to expose.
+   Why:
+   - Different users need different setups.
+   - Website owners should not have to guess whether they need local, Docker, sidecar, or public decoy mode.
+
+8. Create go-live checklist
+   How:
+   - Create GO_LIVE_CHECKLIST.md.
+   - Include preflight, go-live, and post-live checks.
+   - Verify dashboard private, sensors intentional, auth works, health works, trap paths route correctly, X-Forwarded-For is correct, alerts work, backups exist, and logs rotate.
+   Why:
+   - Production readiness needs a repeatable checklist.
+   - It prevents small mistakes like exposing the dashboard or forgetting alert verification.
+
+9. Fix stale/conflicting docs
+   How:
+   - Correct README architecture references to match real files.
+   - Resolve robots/indexing conflict: either noindex/private or public indexing, not both.
+   - Fix dashboard JavaScript check instructions.
+   - Align ecosystem docs with actual docker-compose services.
+   - Remove local absolute paths from public-facing docs.
+   Why:
+   - Stale docs break trust.
+   - Developers and website owners need copy-paste instructions that match the real project.
+
+10. Add real dashboard/browser tests
+   How:
+   - Add Playwright or jsdom tests.
+   - Test login, token/session handling, authenticated API fetch headers, dashboard rendering, service toggle, alert test, navigation, and API error states.
+   Why:
+   - Current tests mostly check static strings.
+   - Dashboard JavaScript can break while string tests still pass.
+
+11. Improve API test isolation
+   How:
+   - Use temporary test DBs for API test modules.
+   - Patch api.DB_PATH and related database objects per test.
+   - Reset login/rate-limit globals between tests.
+   Why:
+   - Tests should not depend on or pollute local honeypot.db.
+   - Isolated tests are more reliable for contributors and CI.
+
+12. Improve n8n automation verification
+   How:
+   - Validate workflow JSON structure, connections, webhook paths, code-node JavaScript, and required env variables.
+   - Import both critical-alert and daily/weekly report workflows or clearly document separate commands.
+   - Smoke-test webhook responses before claiming automation works.
+   Why:
+   - Loading JSON is not enough to prove n8n workflows work.
+   - Alerts and reports are only useful if operators can verify delivery.
+
+13. Add backup, restore, upgrade, and rollback guide
+   How:
+   - Create UPGRADE_AND_ROLLBACK.md or add sections to production docs.
+   - Include how to back up Docker volumes, export/restore honeypot.db, save logs, upgrade images, smoke-test, and roll back.
+   Why:
+   - Real deployments need maintenance, not just initial setup.
+   - Users need a safe path if an upgrade breaks dashboard, sensors, or database access.
+
+14. Add cloud firewall examples
+   How:
+   - Add UFW, AWS security group, DigitalOcean/Hetzner firewall, Tailscale, and Cloudflare Access examples.
+   - Clearly separate public sensor ports from private dashboard/API access.
+   Why:
+   - Dashboard exposure is one of the biggest real-world risks.
+   - Many website owners understand firewall examples better than abstract warnings.
+
+15. Standardize product naming
+   How:
+   - Use one public product name, such as HoneyPot v3.
+   - Explain repository name Honeypotv2.03 only if needed.
+   - Replace local paths like /Users/amulyasrivastava/Desktop/... in public docs with generic paths.
+   Why:
+   - Consistent naming makes the project feel professional.
+   - Public docs should work for any owner, not only the local machine.
+
+Team 3 rule for every task:
+- How = exact steps other teams should take.
+- Why = the real-world risk, user pain, or project value behind the task.
+- Verification = tests, config checks, smoke checks, or docs checks proving the task is actually complete.
+
+---
+Team 3 Review of External HTML Analysis Report
+Source: /Users/amulyasrivastava/Downloads/honeypot_analysis_report.html
+Progress: 75%
+
+Team 3 opinion:
+The report is useful and visually clear. It agrees with several real gaps already found: weak Docker ignore coverage, missing CI, tiny ML dataset, no log rotation, stale README architecture, no service-level integration tests, missing email alerts, single enrichment provider, and need for better setup UX.
+
+Strong points in the report:
+- Correctly identifies ML dataset size as a serious limitation: ml/dataset.csv has 130 lines including header.
+- Correctly identifies no GitHub Actions CI: no .github/workflows directory exists.
+- Correctly identifies .dockerignore is too small and does not exclude .env/.env.*.
+- Correctly identifies README mentions missing core/ and services/ directories.
+- Correctly identifies pickle model loading risk in ml/attack_classifier.py.
+- Correctly calls out log rotation and integration-test gaps.
+
+Corrections / overstatements:
+- The report says quick_deploy.sh does not call setup.py. That is outdated/wrong: scripts/quick_deploy.sh lines 49-55 do call python3 setup.py --non-interactive.
+- The report says make deploy can silently deploy placeholder passwords from .env.example. Current quick_deploy.sh generates .env and credentials when .env is missing, so this exact claim is not accurate.
+- The setup UX issue is still real, but the better framing is: quick_deploy.sh appends Docker-only HONEYPOT_DB_PATH=/app/data/honeypot.db even for local mode, and existing stale .env can be reused unless FORCE=1.
+- In-memory rate limiting is a real weakness for production/multi-worker use, but calling it critical depends on dashboard exposure. Since dashboard is loopback-bound by default, it is high priority if the dashboard is internet/proxy exposed, not automatically critical in every deployment.
+- RDP/SMB sensors are valuable but should be treated carefully. Adding them increases complexity and exposure; production hardening, CI, docs, and safety should come first.
+
+Team 3 recommended use of the report:
+Use it as a strong secondary audit, but merge it with the existing Team 3 readiness list instead of following it blindly. Prioritize fixes that improve safe real-world deployment before adding new sensors.
+
+Best combined priority order:
+1. Fix .dockerignore secret leakage risk.
+2. Fix local quick deploy DB path / setup UX accuracy.
+3. Add production fail-closed startup checks.
+4. Lock down first-admin bootstrap.
+5. Add log rotation and Docker resource limits.
+6. Add GitHub Actions CI and coverage.
+7. Add service-level integration tests.
+8. Fix README architecture and stale docs.
+9. Improve ML dataset/training validation.
+10. Improve enrichment providers and alert providers.
+11. Consider SIEM export.
+12. Only after safety/CI/docs are stronger, consider RDP/SMB/DNS/SMTP sensors.
+
+---
+Team 2 Start-Work Directive from Team 3
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 80%
+
+Team 2 mission:
+Team 2 should now start execution work. Team 3 has already identified the real-world readiness gaps. Team 2 should focus on practical implementation, not more brainstorming. Their job is to turn the highest-priority safety/setup findings into working code, tests, and documentation.
+
+Team 2 working style:
+- Work in small safe patches.
+- Use TDD when changing behavior.
+- Do not touch or commit .env, DBs, logs, reports, caches, or generated runtime files.
+- Keep dashboard/admin private by default.
+- Verify every change before moving to the next one.
+- Report progress as: task, files changed, tests run, result, blocker if any.
+
+Team 2 first sprint: Safety + setup reliability
+
+Task 1: Fix Docker secret leakage risk
+Why:
+- Dockerfile copies the project into the image. If .env enters the Docker build context, secrets can be baked into image layers.
+How:
+- Update .dockerignore to exclude:
+  - .env
+  - .env.*
+  - .deploy-credentials.txt
+  - *.db, *.sqlite, *.sqlite3
+  - *.log
+  - reports/
+  - .pytest_cache/
+  - path/
+  - local caches and generated runtime artifacts
+Verification:
+- Confirm docker compose config still passes.
+- Confirm git status shows only intended source/docs changes.
+- Confirm .dockerignore contains .env and .env.*.
+
+Task 2: Fix local quick deploy DB path
+Why:
+- scripts/quick_deploy.sh currently appends HONEYPOT_DB_PATH=/app/data/honeypot.db for both Docker and local mode. That path is Docker-specific and can break host Python local setup.
+How:
+- Make create_env accept a DB path argument or branch by mode.
+- Docker mode should use /app/data/honeypot.db.
+- Local mode should use ./honeypot.db or an absolute project-local path.
+- Update QUICK_DEPLOY.md if needed.
+Verification:
+- Run bash -n scripts/quick_deploy.sh.
+- Run targeted setup tests.
+- Validate local .env generation path in a safe temp copy or with FORCE only if safe.
+
+Task 3: Add production fail-closed secret preflight
+Why:
+- Production should not start with missing/default auth secret or weak admin password.
+How:
+- Add startup/preflight logic that refuses unsafe production config.
+- Keep explicit local/dev escape hatch documented.
+- Reuse setup.py password rules where possible.
+Verification:
+- Add tests for missing/default HONEYPOT_AUTH_SECRET.
+- Add tests for weak/default HONEYPOT_ADMIN_PASS during env bootstrap.
+- Run security/setup test files.
+
+Task 4: Lock down first-admin bootstrap
+Why:
+- On empty DB first boot, /api/auth/bootstrap is a high-risk ownership moment if exposed too early.
+How:
+- Require one-time bootstrap token OR restrict bootstrap to loopback by default.
+- If remote bootstrap exists, require explicit env enablement and strong secret.
+Verification:
+- Test empty DB bootstrap without token/remote permission fails.
+- Test authorized local/token bootstrap succeeds.
+- Test existing-user bootstrap remains disabled.
+
+Task 5: Add log rotation baseline
+Why:
+- Honeypot logs can grow quickly under scanning and fill disk.
+How:
+- Use RotatingFileHandler or equivalent for honeypot.log/honeypot_out.log.
+- Document Docker log rotation separately if needed.
+Verification:
+- Add/adjust tests for logger configuration if practical.
+- Run compile + tests.
+
+Team 2 second sprint: credibility + docs
+
+Task 6: Add GitHub Actions CI
+Why:
+- Tests pass locally, but there is no CI to prove regressions are caught on every push/PR.
+How:
+- Add .github/workflows/ci.yml.
+- Install requirements and pytest.
+- Run python compile check and pytest.
+- Optionally add coverage.
+Verification:
+- Workflow YAML validates structurally.
+- Local equivalent commands pass.
+
+Task 7: Fix stale README architecture
+Why:
+- README mentions core/ and services/ directories that do not exist.
+How:
+- Either update docs to match current root-file layout or create the documented module structure later.
+- For now, prefer docs correction as a small patch.
+Verification:
+- README paths match actual repo files.
+
+Task 8: Add troubleshooting + setup chooser docs
+Why:
+- Real users need guidance when setup fails and should know which deployment path to choose.
+How:
+- Add or update docs with: local lab, Docker deploy, website sidecar, public decoy VPS, automation/n8n.
+- Add troubleshooting for health check fail, port in use, DB path/permission, login, alerts, reverse proxy IPs, and sensor exposure.
+Verification:
+- Docs are copy-paste friendly and do not include local secrets or local-only user paths.
+
+Team 2 rule:
+Do not start with RDP/SMB/DNS sensors yet. Those are later roadmap items. First make the current product safe, reliable, tested, and easy to deploy.
+
+Team 3 priority message to Team 2:
+Start with Task 1 and Task 2 immediately. They are small, high-value, and reduce real deployment risk fast. After that, move into production fail-closed checks and bootstrap hardening.
+
+---
+Team 2 Safety + Setup Sprint implementation session
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Source inputs used:
+- /Users/amulyasrivastava/Desktop/Honeypotv2.03/Honeypot_drv.txt
+- /Users/amulyasrivastava/Downloads/honeypot_master_checklist.html
+
+Implemented from the notes/checklist:
+1. Secret-safe Docker builds
+   - Expanded .dockerignore to exclude .env/.env.*, generated credentials, DBs, SQLite sidecars, logs, reports, caches, coverage output, and scratch paths while preserving .env.example.
+
+2. Local vs Docker quick-deploy DB path fix
+   - scripts/quick_deploy.sh now passes the DB path by mode.
+   - Docker mode uses /app/data/honeypot.db.
+   - Local mode uses the project-local honeypot.db path so host Python does not try to open Docker-only /app/data.
+   - QUICK_DEPLOY.md documents the mode-specific paths.
+
+3. Production fail-closed startup checks
+   - Added security helpers for auth-secret/admin-password/bootstrap-token strength.
+   - main.py now calls api.validate_production_startup_config() before bootstrap/services.
+   - Production refuses default/short HONEYPOT_AUTH_SECRET, weak/default HONEYPOT_ADMIN_PASS, production default-admin mode, and remote bootstrap without a strong token.
+   - Deployment checks now warn on short/default auth secret and weak/default admin password, not only known exact defaults.
+
+4. First-admin bootstrap hardening
+   - /api/auth/bootstrap is loopback-only by default.
+   - Remote bootstrap requires HONEYPOT_BOOTSTRAP_TOKEN via X-Bootstrap-Token or bootstrap_token JSON.
+   - Bootstrap passwords now use the same 12+ character non-default baseline as setup.py.
+
+5. Log rotation baseline
+   - Honeypot Logger now uses RotatingFileHandler.
+   - Added HONEYPOT_LOG_PATH, HONEYPOT_LOG_MAX_BYTES, and HONEYPOT_LOG_BACKUPS runtime knobs.
+
+6. Production Docker Compose hardening
+   - Removed fresh-host-problem bind mounts for ./honeypot.db and log files.
+   - Added named honeypot_logs volume.
+   - Added pids_limit, mem_limit, CPU limit, nofile ulimits, and json-file Docker log rotation.
+
+Tests/verification:
+- python3 -m py_compile security.py api.py main.py honeypot.py: passed.
+- bash -n scripts/quick_deploy.sh: passed.
+- docker compose config: passed.
+- docker compose -f docker-compose.production.yml config: passed.
+- Targeted tests: 38 passed, 25 subtests passed.
+- Full suite: 85 passed, 66 subtests passed.
+
+Files changed:
+- .dockerignore
+- QUICK_DEPLOY.md
+- api.py
+- docker-compose.production.yml
+- honeypot.py
+- main.py
+- scripts/quick_deploy.sh
+- security.py
+- tests/test_critical_hardening.py
+- tests/test_security_hardening.py
+- tests/test_setup_config.py
+- Honeypot_drv.txt
+
+Checklist items completed/advanced:
+- .dockerignore missing / secret build leakage.
+- HONEYPOT_AUTH_SECRET warn-only production risk.
+- No log rotation baseline.
+- Bootstrap endpoint race condition.
+- admin/admin default production risk.
+- Local vs Docker DB path mismatch.
+- Production Docker Compose missing limits/log rotation.
+- Production secret strength checks.
+- Production compose bind-mount fresh-host risk.
+
+Recommended next sprint:
+1. Add GitHub Actions CI.
+2. Fix README architecture/stale indexing docs.
+3. Add TROUBLESHOOTING.md and GO_LIVE_CHECKLIST.md.
+4. Add service-level integration tests.
+5. Improve n8n workflow validation/import coverage.

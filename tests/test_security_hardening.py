@@ -1,5 +1,7 @@
+import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import api
@@ -155,6 +157,50 @@ class SecurityHardeningTests(unittest.TestCase):
         with patch.dict(api.os.environ, {"HONEYPOT_TRUSTED_PROXIES": "198.51.100.10"}, clear=False):
             with api.app.test_request_context("/", environ_base={"REMOTE_ADDR": "198.51.100.10"}, headers={"X-Forwarded-For": "203.0.113.99, 198.51.100.10"}):
                 self.assertEqual(api.client_ip(), "203.0.113.99")
+
+
+class ProductionStartupAndBootstrapTests(unittest.TestCase):
+    def test_production_startup_rejects_default_auth_secret(self):
+        import api
+        with patch.dict(os.environ, {"FLASK_ENV": "production", "HONEYPOT_AUTH_SECRET": "change-me-in-production"}, clear=False):
+            with self.assertRaises(RuntimeError):
+                api.validate_production_startup_config()
+
+    def test_production_startup_accepts_strong_secrets(self):
+        import api
+        with patch.dict(os.environ, {
+            "FLASK_ENV": "production",
+            "HONEYPOT_AUTH_SECRET": "a" * 48,
+            "HONEYPOT_ADMIN_PASS": "StrongAdminPass123!",
+            "HONEYPOT_ALLOW_DEFAULT_ADMIN": "false",
+        }, clear=False):
+            self.assertTrue(api.validate_production_startup_config())
+
+    def test_remote_bootstrap_requires_token_by_default(self):
+        import api
+        with patch.dict(os.environ, {"FLASK_ENV": "development", "HONEYPOT_AUTH_SECRET": "a" * 48}, clear=False):
+            with tempfile.TemporaryDirectory() as tmpdir, patch.object(api, "DB_PATH", str(Path(tmpdir) / "honeypot.db")):
+                api.hp_db = api.HoneypotDatabase(api.DB_PATH)
+                response = api.app.test_client().post(
+                    "/api/auth/bootstrap",
+                    json={"username": "operator", "password": "StrongAdminPass123!"},
+                    environ_base={"REMOTE_ADDR": "203.0.113.10"},
+                )
+        self.assertEqual(response.status_code, 403)
+
+    def test_bootstrap_token_allows_remote_first_admin(self):
+        import api
+        token = "b" * 40
+        with patch.dict(os.environ, {"FLASK_ENV": "development", "HONEYPOT_BOOTSTRAP_TOKEN": token, "HONEYPOT_AUTH_SECRET": "a" * 48}, clear=False):
+            with tempfile.TemporaryDirectory() as tmpdir, patch.object(api, "DB_PATH", str(Path(tmpdir) / "honeypot.db")):
+                api.hp_db = api.HoneypotDatabase(api.DB_PATH)
+                response = api.app.test_client().post(
+                    "/api/auth/bootstrap",
+                    json={"username": "operator", "password": "StrongAdminPass123!"},
+                    headers={"X-Bootstrap-Token": token},
+                    environ_base={"REMOTE_ADDR": "203.0.113.10"},
+                )
+        self.assertEqual(response.status_code, 200)
 
 
 if __name__ == "__main__":

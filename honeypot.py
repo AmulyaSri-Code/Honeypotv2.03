@@ -4,6 +4,7 @@ Database: honeypot.db | Log: honeypot.log | Connections held 2+ min for IP/geo t
 """
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import random
 import signal
@@ -415,7 +416,10 @@ class Logger:
     def __init__(self):
         self._log = logging.getLogger("Honeypot")
         self._log.setLevel(logging.INFO)
-        fh = logging.FileHandler("honeypot.log")
+        log_path = os.environ.get("HONEYPOT_LOG_PATH", "honeypot.log")
+        max_bytes = int(os.environ.get("HONEYPOT_LOG_MAX_BYTES", str(10 * 1024 * 1024)))
+        backup_count = int(os.environ.get("HONEYPOT_LOG_BACKUPS", "5"))
+        fh = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
         fh.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
         self._log.addHandler(fh)
         ch = logging.StreamHandler(sys.stdout)

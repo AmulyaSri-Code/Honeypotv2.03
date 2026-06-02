@@ -108,6 +108,22 @@ class CriticalHardeningTests(unittest.TestCase):
         self.assertIn('"version":2', lines[0])
         self.assertIn('whoami', lines[1])
 
+
+    def test_honeypot_logger_uses_rotating_file_handler(self):
+        import logging.handlers
+        import honeypot
+
+        logger = honeypot.Logger()
+        self.assertTrue(any(isinstance(handler, logging.handlers.RotatingFileHandler) for handler in logger._log.handlers))
+
+    def test_production_compose_uses_safe_volumes_and_log_limits(self):
+        text = (ROOT / "docker-compose.production.yml").read_text()
+        self.assertIn("honeypot_logs:/app/logs", text)
+        self.assertNotIn("./honeypot.db:/app/honeypot.db", text)
+        self.assertIn("pids_limit:", text)
+        self.assertIn("mem_limit:", text)
+        self.assertIn("max-size", text)
+
     def test_api_import_uses_env_db_path_instead_of_repo_db(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "isolated.db")

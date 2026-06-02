@@ -108,6 +108,20 @@ class SetupConfigTests(unittest.TestCase):
         self.assertIn("deploy:", makefile.read_text())
         self.assertIn(".deploy-credentials.txt", gitignore)
 
+
+    def test_dockerignore_excludes_secret_and_runtime_artifacts(self):
+        dockerignore = (ROOT / ".dockerignore").read_text()
+        for required in (".env", ".env.*", ".deploy-credentials.txt", "*.db", "*.sqlite", "*.log", "reports/", ".pytest_cache/"):
+            with self.subTest(required=required):
+                self.assertIn(required, dockerignore)
+        self.assertIn("!.env.example", dockerignore)
+
+    def test_quick_deploy_uses_different_db_paths_for_docker_and_local(self):
+        script = (ROOT / "scripts" / "quick_deploy.sh").read_text()
+        self.assertIn('create_env "0.0.0.0" "/app/data/honeypot.db"', script)
+        self.assertIn('create_env "127.0.0.1" "$ROOT_DIR/honeypot.db"', script)
+        self.assertIn('HONEYPOT_DB_PATH=${HONEYPOT_DB_PATH:-$db_path}', script)
+
     def test_quick_deploy_help_is_fast_and_documents_modes(self):
         result = subprocess.run(
             ["bash", "scripts/quick_deploy.sh", "help"],

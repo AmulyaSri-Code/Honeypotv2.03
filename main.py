@@ -1,6 +1,6 @@
 import os
 import socket
-from api import app, start_services, bootstrap_admin
+from api import app, start_services, bootstrap_admin, validate_production_startup_config
 from app_meta import APP_NAME, APP_VERSION
 
 def get_local_ip():
@@ -23,6 +23,7 @@ def dashboard_port():
 
 
 def main():
+    validate_production_startup_config()
     bootstrap_admin()
     # Start all honeypot services by default
     start_services()

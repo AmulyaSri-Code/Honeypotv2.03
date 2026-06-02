@@ -21,13 +21,23 @@ services:
       - "127.0.0.1:5050:5050"
     volumes:
       - honeypot_data:/app/data
-      - ./honeypot.db:/app/honeypot.db
-      - ./honeypot.log:/app/honeypot.log
-      - ./honeypot_out.log:/app/honeypot_out.log
+      - honeypot_logs:/app/logs
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    pids_limit: 512
+    mem_limit: 512m
+    cpus: 1.0
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     read_only: false
     tmpfs:
       - /tmp:size=64m,noexec,nosuid,nodev
@@ -41,3 +51,4 @@ services:
 
 volumes:
   honeypot_data:
+  honeypot_logs:

@@ -2,6 +2,34 @@
 .git/
 __pycache__/
 *.pyc
+.pytest_cache/
+.DS_Store
+
+# Local secrets and generated credentials
+.env
+.env.*
+!.env.example
+.deploy-credentials.txt
+
+# Runtime databases and SQLite sidecars
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
 honeypot.db
+
+# Runtime logs and reports
+*.log
 honeypot.log
 honeypot_out.log
+logs/
+reports/
+
+# Local/generated scratch artifacts
+path/
+path/to/
+.coverage
+htmlcov/
