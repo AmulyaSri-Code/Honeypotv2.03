@@ -10,6 +10,7 @@ import time
 from html import escape
 from functools import wraps
 from datetime import datetime, timezone
+from pathlib import Path
 from flask import Flask, jsonify, send_from_directory, request, Response, redirect
 
 from env_loader import load_env_file
@@ -1098,6 +1099,90 @@ def attacks():
 @requires_token()
 def alerts_status():
     return jsonify(provider_status())
+
+
+def _alert_config_payload():
+    status = provider_status()
+    return {
+        "enabled": status["enabled"],
+        "min_severity": status["min_severity"],
+        "providers": {
+            "slack": {"configured": status["providers"]["slack"]["configured"], "value": ""},
+            "discord": {"configured": status["providers"]["discord"]["configured"], "value": ""},
+            "telegram": {"configured": status["providers"]["telegram"]["configured"], "token_value": "", "chat_value": ""},
+            "n8n": {"configured": status["providers"]["n8n"]["configured"], "value": ""},
+        },
+    }
+
+
+def _write_env_updates(updates, env_path=Path(".env")):
+    env_path = Path(env_path)
+    existing = env_path.read_text().splitlines() if env_path.exists() else []
+    seen = set()
+    lines = []
+    for line in existing:
+        if not line.strip() or line.lstrip().startswith("#") or "=" not in line:
+            lines.append(line)
+            continue
+        key = line.split("=", 1)[0].strip()
+        if key in updates:
+            lines.append(f"{key}={updates[key]}")
+            seen.add(key)
+        else:
+            lines.append(line)
+    missing = [(key, value) for key, value in updates.items() if key not in seen]
+    if missing and lines and lines[-1].strip():
+        lines.append("")
+    for key, value in missing:
+        lines.append(f"{key}={value}")
+    env_path.write_text("\n".join(lines).rstrip() + "\n")
+    try:
+        os.chmod(env_path, 0o600)
+    except OSError:
+        pass
+
+
+@app.route("/api/alerts/config", methods=["GET"])
+@requires_token()
+def alerts_config_get():
+    return jsonify(_alert_config_payload())
+
+
+@app.route("/api/alerts/config", methods=["PUT"])
+@requires_token(role="admin")
+def alerts_config_update():
+    payload = request.get_json(silent=True) or {}
+    updates = {}
+    if "enabled" in payload:
+        enabled = payload.get("enabled")
+        updates["HONEYPOT_ALERTS_ENABLED"] = "true" if enabled is True or str(enabled).strip().lower() in {"1", "true", "yes", "on", "y"} else "false"
+    if "min_severity" in payload:
+        severity = str(payload.get("min_severity") or "high").strip().lower()
+        if severity not in {"low", "medium", "mid", "high", "critical"}:
+            return jsonify({"error": "invalid min_severity"}), 400
+        updates["HONEYPOT_ALERT_MIN_SEVERITY"] = severity
+    providers = payload.get("providers") or {}
+    if "telegram" in providers and isinstance(providers["telegram"], dict):
+        if "token" in providers["telegram"]:
+            providers["telegram_token"] = providers["telegram"].get("token", "")
+        if "chat_id" in providers["telegram"]:
+            providers["telegram_chat"] = providers["telegram"].get("chat_id", "")
+    provider_map = {
+        "slack": "SLACK_WEBHOOK_URL",
+        "discord": "DISCORD_WEBHOOK_URL",
+        "n8n": "N8N_WEBHOOK_URL",
+        "telegram_token": "TELEGRAM_BOT_TOKEN",
+        "telegram_chat": "TELEGRAM_CHAT_ID",
+    }
+    for incoming, env_key in provider_map.items():
+        if incoming in providers:
+            updates[env_key] = str(providers.get(incoming) or "").strip()
+    for key, value in updates.items():
+        os.environ[key] = value
+    if updates:
+        _write_env_updates(updates)
+    log_audit(request.user.get("username", "unknown"), "alerts.config.update", target="notifications")
+    return jsonify({"success": True, "config": _alert_config_payload()})
 
 
 @app.route("/api/sessions/<int:connection_id>/replay")

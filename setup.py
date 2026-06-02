@@ -14,6 +14,7 @@ import secrets
 import stat
 from pathlib import Path
 from typing import Dict, Optional
+from urllib.parse import urlparse
 
 DEFAULTS = {
     "HONEYPOT_TOKEN_TTL_SECONDS": "28800",
@@ -29,7 +30,9 @@ DEFAULTS = {
     "HONEYPOT_SENSOR_BIND_HOST": "127.0.0.1",
     "HONEYPOT_DASHBOARD_PORT": "5050",
     "FLASK_ENV": "production",
+    "HONEYPOT_PUBLIC_URL": "http://localhost:5050",
 }
+
 
 BAD_PASSWORDS = {"", "secret", "password", "admin", "admin123", "change_this_now", "replace_with_a_strong_password"}
 VALID_SEVERITIES = {"low", "medium", "mid", "high", "critical"}
@@ -40,6 +43,16 @@ def normalize_bool(value: object) -> str:
         return "true" if value else "false"
     return "true" if str(value).strip().lower() in {"1", "true", "yes", "on", "y"} else "false"
 
+
+
+def infer_domain(public_url: str) -> str:
+    value = (public_url or "").strip()
+    if not value:
+        return "localhost"
+    candidate = value if "://" in value else f"https://{value}"
+    parsed = urlparse(candidate)
+    host = parsed.hostname or value.split("/")[0].split(":")[0]
+    return host or "localhost"
 
 def validate_admin_credentials(admin_user: str, admin_pass: str) -> None:
     if len(admin_user.strip()) < 3:
@@ -78,6 +91,8 @@ def build_env_config(
     socket_timeout_seconds: str = DEFAULTS["HONEYPOT_SOCKET_TIMEOUT_SECONDS"],
     max_connections_per_service: str = DEFAULTS["HONEYPOT_MAX_CONNECTIONS_PER_SERVICE"],
     max_connections_per_ip: str = DEFAULTS["HONEYPOT_MAX_CONNECTIONS_PER_IP"],
+    public_url: str = DEFAULTS["HONEYPOT_PUBLIC_URL"],
+    domain: str = "",
 ) -> Dict[str, str]:
     if admin_pass is None:
         admin_pass = secrets.token_urlsafe(18)
@@ -85,6 +100,8 @@ def build_env_config(
     validate_admin_credentials(admin_user, admin_pass)
 
     severity = alert_min_severity.strip().lower()
+    public_url = (public_url or DEFAULTS["HONEYPOT_PUBLIC_URL"]).strip()
+    detected_domain = (domain or infer_domain(public_url)).strip()
     if severity not in VALID_SEVERITIES:
         raise ValueError(f"Alert minimum severity must be one of: {', '.join(sorted(VALID_SEVERITIES))}.")
 
@@ -112,6 +129,8 @@ def build_env_config(
         "HONEYPOT_DASHBOARD_PORT": validate_port(str(dashboard_port)),
         "HONEYPOT_ALLOW_DEFAULT_ADMIN": "false",
         "HONEYPOT_COOKIE_SECURE": "false",
+        "HONEYPOT_PUBLIC_URL": public_url,
+        "HONEYPOT_DOMAIN": detected_domain,
         "FLASK_ENV": "production",
     }
     return config
@@ -148,6 +167,8 @@ def format_env(config: Dict[str, str]) -> str:
         "HONEYPOT_DASHBOARD_PORT",
         "HONEYPOT_ALLOW_DEFAULT_ADMIN",
         "HONEYPOT_COOKIE_SECURE",
+        "HONEYPOT_PUBLIC_URL",
+        "HONEYPOT_DOMAIN",
         "FLASK_ENV",
     ]
     for key in ordered_keys:
@@ -155,6 +176,8 @@ def format_env(config: Dict[str, str]) -> str:
             lines.extend(["", "# Optional outbound alert delivery"])
         if key == "HONEYPOT_BIND_HOST":
             lines.extend(["", "# Dashboard/API binding"])
+        if key == "HONEYPOT_PUBLIC_URL":
+            lines.extend(["", "# Public deployment metadata used by docs, health summaries, and reverse proxies"])
         lines.append(f"{key}={config.get(key, '')}")
     return "\n".join(lines) + "\n"
 
@@ -205,6 +228,7 @@ def interactive_config() -> Dict[str, str]:
     discord = ask("Discord webhook URL (optional)", "")
     telegram_token = ask("Telegram bot token (optional)", "")
     telegram_chat = ask("Telegram chat ID (optional)", "")
+    public_url = ask("Public dashboard URL/domain", DEFAULTS["HONEYPOT_PUBLIC_URL"])
     return build_env_config(
         admin_user=admin_user,
         admin_pass=admin_pass,
@@ -218,8 +242,24 @@ def interactive_config() -> Dict[str, str]:
         discord_webhook_url=discord,
         telegram_bot_token=telegram_token,
         telegram_chat_id=telegram_chat,
+        public_url=public_url,
     )
 
+
+
+def setup_success_summary(config: Dict[str, str], output_path: Path) -> str:
+    dashboard_url = config.get("HONEYPOT_PUBLIC_URL") or f"http://localhost:{config.get('HONEYPOT_DASHBOARD_PORT', '5050')}"
+    domain = config.get("HONEYPOT_DOMAIN") or infer_domain(dashboard_url)
+    alerts_state = "enabled" if normalize_bool(config.get("HONEYPOT_ALERTS_ENABLED", "false")) == "true" else "disabled"
+    return "\n".join([
+        "Successfully setup HoneyPot v3.",
+        f"Configuration file: {output_path}",
+        f"Dashboard URL: {dashboard_url}",
+        f"Detected domain: {domain}",
+        f"Dashboard username: {config['HONEYPOT_ADMIN_USER']}",
+        f"Alert connections: {alerts_state} (can also be updated from the dashboard Alerts panel)",
+        "Next: start the app, open /login, then sign in to the private dashboard.",
+    ])
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create Honeypotv2.03 .env configuration")
@@ -238,6 +278,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--discord-webhook-url", default="")
     parser.add_argument("--telegram-bot-token", default="")
     parser.add_argument("--telegram-chat-id", default="")
+    parser.add_argument("--public-url", default=DEFAULTS["HONEYPOT_PUBLIC_URL"], help="Public dashboard URL or domain after reverse-proxy/DNS setup")
+    parser.add_argument("--domain", default="", help="Domain name; inferred from --public-url when omitted")
     return parser.parse_args()
 
 
@@ -259,14 +301,14 @@ def main() -> int:
             discord_webhook_url=args.discord_webhook_url,
             telegram_bot_token=args.telegram_bot_token,
             telegram_chat_id=args.telegram_chat_id,
+            public_url=args.public_url,
+            domain=args.domain,
         )
     else:
         config = interactive_config()
 
     output = write_env_file(Path(args.output), config, force=args.force)
-    print(f"Wrote {output} with owner-only permissions.")
-    print(f"Dashboard username: {config['HONEYPOT_ADMIN_USER']}")
-    print("Next: run python main.py, open /login, then sign in to the private dashboard.")
+    print(setup_success_summary(config, output))
     return 0
 
 

@@ -121,6 +121,42 @@ class SetupConfigTests(unittest.TestCase):
         self.assertIn("quick_deploy.sh docker", result.stderr)
         self.assertIn("quick_deploy.sh local", result.stderr)
 
+    def test_setup_config_records_public_url_and_inferred_domain(self):
+        setup = load_setup_module()
+
+        config = setup.build_env_config(
+            admin_user="operator",
+            admin_pass="StrongPass123!",
+            public_url="https://security.example.com/honeypot",
+        )
+
+        self.assertEqual(config["HONEYPOT_PUBLIC_URL"], "https://security.example.com/honeypot")
+        self.assertEqual(config["HONEYPOT_DOMAIN"], "security.example.com")
+        self.assertIn("HONEYPOT_PUBLIC_URL=https://security.example.com/honeypot", setup.format_env(config))
+
+    def test_setup_success_summary_shows_dashboard_and_domain(self):
+        setup = load_setup_module()
+        config = setup.build_env_config(
+            admin_user="operator",
+            admin_pass="StrongPass123!",
+            public_url="https://security.example.com",
+        )
+
+        summary = setup.setup_success_summary(config, output_path=Path(".env"))
+
+        self.assertIn("Successfully setup HoneyPot v3", summary)
+        self.assertIn("Dashboard URL: https://security.example.com", summary)
+        self.assertIn("Detected domain: security.example.com", summary)
+
+    def test_quick_deploy_docker_prompts_for_admin_and_domain_setup(self):
+        quick_script = (ROOT / "scripts" / "quick_deploy.sh").read_text()
+
+        self.assertIn("prompt_deploy_config", quick_script)
+        self.assertIn("Dashboard admin username", quick_script)
+        self.assertIn("Dashboard admin password", quick_script)
+        self.assertIn("Public dashboard URL/domain", quick_script)
+        self.assertIn("HONEYPOT_QUICK_DEPLOY_NON_INTERACTIVE", quick_script)
+
 
 if __name__ == "__main__":
     unittest.main()

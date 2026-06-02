@@ -106,6 +106,23 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("Slack · Telegram · Discord · n8n", self.html)
         self.assertIn("'slack','telegram','discord','n8n'", self.html)
 
+    def test_dashboard_has_alert_setup_panel_for_admin_connections(self):
+        required = [
+            "id=\"alert-settings-form\"",
+            "id=\"alert-slack-webhook\"",
+            "id=\"alert-discord-webhook\"",
+            "id=\"alert-telegram-token\"",
+            "id=\"alert-telegram-chat\"",
+            "id=\"alert-n8n-webhook\"",
+            "function loadAlertConfig",
+            "function saveAlertConfig",
+            "/api/alerts/config",
+            "Save alert connections",
+        ]
+        for snippet in required:
+            with self.subTest(snippet=snippet):
+                self.assertIn(snippet, self.html)
+
     def test_dashboard_exposes_safe_operator_metadata_without_indexing_admin_ui(self):
         required = [
             "name=\"description\"",
