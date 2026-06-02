@@ -7,8 +7,9 @@ services:
         required: false
     environment:
       HONEYPOT_DB_PATH: ${HONEYPOT_DB_PATH:-/app/data/honeypot.db}
-      HONEYPOT_BIND_HOST: ${HONEYPOT_BIND_HOST:-0.0.0.0}
-      HONEYPOT_SENSOR_BIND_HOST: ${HONEYPOT_SENSOR_BIND_HOST:-0.0.0.0}
+      # Docker must listen on all container interfaces; host publishing keeps the dashboard private on 127.0.0.1:5050.
+      HONEYPOT_BIND_HOST: 0.0.0.0
+      HONEYPOT_SENSOR_BIND_HOST: 0.0.0.0
       HONEYPOT_DASHBOARD_PORT: ${HONEYPOT_DASHBOARD_PORT:-5050}
       HONEYPOT_ALLOW_DEFAULT_ADMIN: ${HONEYPOT_ALLOW_DEFAULT_ADMIN:-false}
     ports:
