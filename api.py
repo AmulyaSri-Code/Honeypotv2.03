@@ -846,7 +846,10 @@ def _db_path_writable(path):
 
 
 def _admin_configured():
-    if os.environ.get("HONEYPOT_ADMIN_USER") and os.environ.get("HONEYPOT_ADMIN_PASS"):
+    admin_pass = os.environ.get("HONEYPOT_ADMIN_PASS", "")
+    if admin_password_is_strong(admin_pass):
+        return True
+    if os.environ.get("HONEYPOT_ADMIN_USER") and admin_pass:
         return True
     try:
         conn = get_db()
