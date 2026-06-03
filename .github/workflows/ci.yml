@@ -38,4 +38,6 @@ jobs:
           docker compose -f docker-compose.production.yml config >/tmp/honeypot-production-compose.yml
 
       - name: Tests
-        run: pytest -q
+        run: |
+          python --version
+          python -m pytest -q -ra
