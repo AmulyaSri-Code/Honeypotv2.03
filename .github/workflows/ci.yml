@@ -26,9 +26,12 @@ jobs:
         run: python -m compileall -q api.py main.py honeypot.py security.py notifications.py setup.py ml tests
 
       - name: Shell syntax check
-        run: bash -n scripts/quick_deploy.sh docker-entrypoint.sh
+        run: bash -n scripts/quick_deploy.sh scripts/doctor.sh docker-entrypoint.sh
 
       - name: Docker Compose config check
+        env:
+          # CI validates Compose rendering without a local .env. Operators still must set a real key.
+          N8N_ENCRYPTION_KEY: ci-only-compose-render-secret-do-not-use
         run: |
           docker compose config >/tmp/honeypot-compose.yml
           docker compose -f docker-compose.production.yml config >/tmp/honeypot-production-compose.yml
