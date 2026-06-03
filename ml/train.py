@@ -2,6 +2,7 @@
 Train attack classifier: TF-IDF (char w/b only) + Random Forest.
 Creates model.pkl and vectorizer.pkl for real-time prediction.
 """
+import hashlib
 import os
 import pickle
 import re
@@ -20,6 +21,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET = os.path.join(SCRIPT_DIR, "dataset.csv")
 MODEL_PATH = os.path.join(SCRIPT_DIR, "model.pkl")
 VECTORIZER_PATH = os.path.join(SCRIPT_DIR, "vectorizer.pkl")
+MANIFEST_PATH = os.path.join(SCRIPT_DIR, "artifacts.sha256")
 
 def preprocess(text):
     """Clean command: lowercase, collapse whitespace, keep key chars."""
@@ -30,6 +32,13 @@ def preprocess(text):
     # Keeping more characters relevant to shell payload execution
     text = re.sub(r'[^\w\s\-/\.:;|&$`<>+*]', '', text)
     return text
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 def main():
     print("[*] Loading and expanding dataset...")
@@ -71,7 +80,11 @@ def main():
     with open(VECTORIZER_PATH, "wb") as f:
         pickle.dump(vectorizer, f)
     print(f"\n[+] Successfully saved {MODEL_PATH}")
+    with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+        f.write(f"{sha256_file(MODEL_PATH)}  model.pkl\n")
+        f.write(f"{sha256_file(VECTORIZER_PATH)}  vectorizer.pkl\n")
     print(f"[+] Successfully saved {VECTORIZER_PATH}")
+    print(f"[+] Successfully saved {MANIFEST_PATH}")
     print("[+] Model is tied to your current environment package versions. May trigger InconsistentVersionWarning if loaded on different sklearn versions.")
 
 if __name__ == "__main__":

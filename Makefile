@@ -1,4 +1,4 @@
-.PHONY: deploy local status logs stop test quick-test
+.PHONY: deploy local status logs stop doctor test quick-test
 
 deploy:
 	./scripts/quick_deploy.sh docker
@@ -14,6 +14,9 @@ logs:
 
 stop:
 	docker compose down
+
+doctor:
+	./scripts/doctor.sh
 
 test:
 	.venv/bin/python -m pytest -q

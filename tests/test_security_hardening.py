@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -158,6 +160,54 @@ class SecurityHardeningTests(unittest.TestCase):
             with api.app.test_request_context("/", environ_base={"REMOTE_ADDR": "198.51.100.10"}, headers={"X-Forwarded-For": "203.0.113.99, 198.51.100.10"}):
                 self.assertEqual(api.client_ip(), "203.0.113.99")
 
+    def test_persistent_rate_limit_uses_database_table(self):
+        import api
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_db = str(Path(tmpdir) / "honeypot.db")
+            api.HoneypotDatabase(test_db)
+            with patch.object(api, "DB_PATH", test_db), patch.dict(api.os.environ, {"HONEYPOT_RATE_LIMIT_BACKEND": "sqlite"}, clear=False):
+                api.clear_rate_limit("request", "198.51.100.10")
+                self.assertFalse(api.persistent_rate_limited("request", "198.51.100.10", 60, 2))
+                api.mark_persistent_rate("request", "198.51.100.10")
+                self.assertFalse(api.persistent_rate_limited("request", "198.51.100.10", 60, 2))
+                api.mark_persistent_rate("request", "198.51.100.10")
+                self.assertTrue(api.persistent_rate_limited("request", "198.51.100.10", 60, 2))
+
+                conn = api.get_db()
+                count = conn.execute("SELECT COUNT(*) FROM rate_limits WHERE scope='request' AND identity='198.51.100.10'").fetchone()[0]
+                conn.close()
+        self.assertEqual(count, 2)
+
+    def test_setup_status_endpoint_returns_safe_operator_booleans(self):
+        env = {
+            "HONEYPOT_AUTH_SECRET": "a" * 48,
+            "HONEYPOT_ADMIN_PASS": "StrongAdminPass123!",
+            "HONEYPOT_BIND_HOST": "127.0.0.1",
+            "HONEYPOT_DB_PATH": "honeypot.db",
+            "SLACK_WEBHOOK_URL": "https://hooks.slack.example/redacted-secret",
+            "TELEGRAM_BOT_TOKEN": "123:secret-token",
+            "TELEGRAM_CHAT_ID": "12345",
+        }
+        with patch.dict(api.os.environ, env, clear=False):
+            headers = {"Authorization": f"Bearer {create_token({'username': 'viewer-test', 'role': 'viewer'})}"}
+            response = self.client.get("/api/setup/status", headers=headers)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        for key in ("env_exists", "auth_secret_strong", "admin_configured", "dashboard_private", "db_writable", "ml_loaded", "alerts_enabled", "providers_configured"):
+            self.assertIn(key, payload)
+        self.assertTrue(payload["auth_secret_strong"])
+        self.assertTrue(payload["admin_configured"])
+        self.assertTrue(payload["dashboard_private"])
+        self.assertIsInstance(payload["providers_configured"]["slack"], bool)
+        serialized = response.get_data(as_text=True)
+        self.assertNotIn("redacted-secret", serialized)
+        self.assertNotIn("secret-token", serialized)
+
+    def test_setup_status_endpoint_requires_authentication(self):
+        response = self.client.get("/api/setup/status")
+        self.assertEqual(response.status_code, 401)
+
 
 class ProductionStartupAndBootstrapTests(unittest.TestCase):
     def test_production_startup_rejects_default_auth_secret(self):
@@ -175,6 +225,26 @@ class ProductionStartupAndBootstrapTests(unittest.TestCase):
             "HONEYPOT_ALLOW_DEFAULT_ADMIN": "false",
         }, clear=False):
             self.assertTrue(api.validate_production_startup_config())
+
+    def test_direct_api_py_startup_rejects_weak_production_secret(self):
+        env = {
+            **os.environ,
+            "FLASK_ENV": "production",
+            "HONEYPOT_AUTH_SECRET": "change-me-in-production",
+            "HONEYPOT_ADMIN_PASS": "StrongAdminPass123!",
+            "HONEYPOT_DASHBOARD_PORT": "5999",
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        result = subprocess.run(
+            [sys.executable, "api.py"],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("HONEYPOT_AUTH_SECRET", result.stderr + result.stdout)
 
     def test_remote_bootstrap_requires_token_by_default(self):
         import api

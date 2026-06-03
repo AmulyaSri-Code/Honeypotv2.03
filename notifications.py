@@ -5,11 +5,14 @@ returned by status helpers or dashboard APIs.
 """
 import json
 import os
+import smtplib
+import ssl
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from email.message import EmailMessage
 from datetime import datetime, timezone
 
 from env_loader import load_env_file
@@ -49,6 +52,8 @@ def configured_providers():
         providers.append("telegram")
     if os.environ.get("N8N_WEBHOOK_URL"):
         providers.append("n8n")
+    if os.environ.get("SMTP_HOST") and os.environ.get("SMTP_TO"):
+        providers.append("smtp")
     return providers
 
 
@@ -61,6 +66,7 @@ def provider_status():
             "discord": {"configured": bool(os.environ.get("DISCORD_WEBHOOK_URL"))},
             "telegram": {"configured": bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))},
             "n8n": {"configured": bool(os.environ.get("N8N_WEBHOOK_URL"))},
+            "smtp": {"configured": bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_TO"))},
         },
     }
 
@@ -130,6 +136,32 @@ def _send_telegram(text):
     return _post_json(url, {"chat_id": chat_id, "text": text[:3900], "disable_web_page_preview": True})
 
 
+def _send_smtp(text):
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    sender = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "honeypot@localhost"))
+    recipients = [addr.strip() for addr in os.environ["SMTP_TO"].split(",") if addr.strip()]
+    msg = EmailMessage()
+    msg["Subject"] = os.environ.get("SMTP_SUBJECT_PREFIX", "[HoneyPot v3]") + " Alert"
+    msg["From"] = sender
+    msg["To"] = ", ".join(recipients)
+    msg.set_content(text)
+    context = ssl.create_default_context()
+    timeout = int(os.environ.get("SMTP_TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS)))
+    use_ssl = _env_true("SMTP_SSL", "false")
+    use_starttls = _env_true("SMTP_STARTTLS", "true")
+    username = os.environ.get("SMTP_USER", "")
+    password = os.environ.get("SMTP_PASS", "")
+    client_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    with client_cls(host, port, timeout=timeout) as smtp:
+        if not use_ssl and use_starttls:
+            smtp.starttls(context=context)
+        if username and password:
+            smtp.login(username, password)
+        smtp.send_message(msg)
+    return True
+
+
 def _send_n8n(event, text):
     payload = {
         "source": APP_NAME,
@@ -173,6 +205,8 @@ def send_alert(event):
                 results[provider] = {"ok": bool(_send_telegram(text))}
             elif provider == "n8n":
                 results[provider] = {"ok": bool(_send_n8n(event, text))}
+            elif provider == "smtp":
+                results[provider] = {"ok": bool(_send_smtp(text))}
         except (urllib.error.URLError, TimeoutError, OSError, KeyError, ValueError) as exc:
             results[provider] = {"ok": False, "error": exc.__class__.__name__}
     return {"sent": any(item.get("ok") for item in results.values()), "providers": results}

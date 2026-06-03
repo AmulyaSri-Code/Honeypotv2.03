@@ -6,6 +6,7 @@ services, so this module must never crash request/session handling. Model loadin
 is lazy, cached, and intentionally fails closed to "Unknown" when artifacts are
 missing, corrupted, or incompatible with the installed sklearn version.
 """
+import hashlib
 import os
 import pickle
 import re
@@ -14,10 +15,39 @@ from typing import Any
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(SCRIPT_DIR, "model.pkl")
 VECTORIZER_PATH = os.path.join(SCRIPT_DIR, "vectorizer.pkl")
+MANIFEST_PATH = os.path.join(SCRIPT_DIR, "artifacts.sha256")
 
 _classifier = None
 _vectorizer = None
 _load_error = None
+
+
+def _sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _manifest_hashes() -> dict[str, str]:
+    hashes = {}
+    if not os.path.exists(MANIFEST_PATH):
+        return hashes
+    with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) >= 2 and len(parts[0]) == 64:
+                hashes[parts[-1]] = parts[0].lower()
+    return hashes
+
+
+def _artifacts_verified() -> bool:
+    hashes = _manifest_hashes()
+    required = {"model.pkl": MODEL_PATH, "vectorizer.pkl": VECTORIZER_PATH}
+    if not all(name in hashes for name in required):
+        return False
+    return all(_sha256(path).lower() == hashes[name] for name, path in required.items())
 
 
 def preprocess(text: Any) -> str:
@@ -48,6 +78,13 @@ def _load() -> bool:
     if not os.path.exists(MODEL_PATH) or not os.path.exists(VECTORIZER_PATH):
         _load_error = "missing_model_artifact"
         return False
+    try:
+        if not _artifacts_verified():
+            _load_error = "artifact_hash_mismatch"
+            return False
+    except Exception:
+        _load_error = "artifact_hash_mismatch"
+        return False
 
     try:
         with open(MODEL_PATH, "rb") as f:
@@ -73,6 +110,8 @@ def model_status() -> dict:
         "loaded": loaded,
         "model_path": MODEL_PATH,
         "vectorizer_path": VECTORIZER_PATH,
+        "manifest_path": MANIFEST_PATH,
+        "manifest_exists": os.path.exists(MANIFEST_PATH),
         "model_exists": os.path.exists(MODEL_PATH),
         "vectorizer_exists": os.path.exists(VECTORIZER_PATH),
         "error": _load_error,

@@ -106,7 +106,28 @@ class SetupConfigTests(unittest.TestCase):
         self.assertTrue(quick_script.exists())
         self.assertIn("quick_deploy.sh docker", quick_docs.read_text())
         self.assertIn("deploy:", makefile.read_text())
+        self.assertIn("doctor:", makefile.read_text())
         self.assertIn(".deploy-credentials.txt", gitignore)
+
+    def test_doctor_script_exists_and_supports_offline_checks(self):
+        doctor = ROOT / "scripts" / "doctor.sh"
+        self.assertTrue(doctor.exists())
+        syntax = subprocess.run(["bash", "-n", str(doctor)], cwd=ROOT, text=True, capture_output=True, timeout=5)
+        self.assertEqual(syntax.returncode, 0, syntax.stderr)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_path = Path(tmpdir) / ".env"
+            env_path.write_text("HONEYPOT_AUTH_SECRET=" + "a" * 48 + "\nHONEYPOT_ADMIN_PASS=StrongPass123!\nHONEYPOT_DB_PATH=" + str(Path(tmpdir) / "honeypot.db") + "\n")
+            result = subprocess.run(
+                ["bash", str(doctor), "--offline"],
+                cwd=ROOT,
+                env={**os.environ, "HONEYPOT_ENV_FILE": str(env_path)},
+                text=True,
+                capture_output=True,
+                timeout=20,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("PASS", result.stdout)
+        self.assertIn("Auth secret", result.stdout)
 
 
     def test_dockerignore_excludes_secret_and_runtime_artifacts(self):
@@ -121,6 +142,19 @@ class SetupConfigTests(unittest.TestCase):
         self.assertIn('create_env "0.0.0.0" "/app/data/honeypot.db"', script)
         self.assertIn('create_env "127.0.0.1" "$ROOT_DIR/honeypot.db"', script)
         self.assertIn('HONEYPOT_DB_PATH=${HONEYPOT_DB_PATH:-$db_path}', script)
+    def test_ci_and_operator_docs_exist(self):
+        self.assertTrue((ROOT / ".github" / "workflows" / "ci.yml").exists())
+        for doc in ("TROUBLESHOOTING.md", "GO_LIVE_CHECKLIST.md", "CONTRIBUTING.md"):
+            with self.subTest(doc=doc):
+                self.assertTrue((ROOT / doc).exists())
+
+    def test_readme_architecture_matches_current_files(self):
+        readme = (ROOT / "README.md").read_text()
+        architecture = readme.split("## Architecture", 1)[1].split("## Quick Start", 1)[0]
+        self.assertNotIn("core/ contains", architecture)
+        self.assertNotIn("services/ contains", architecture)
+        self.assertIn("`honeypot.py` contains the service listener implementations", architecture)
+
 
     def test_quick_deploy_help_is_fast_and_documents_modes(self):
         result = subprocess.run(

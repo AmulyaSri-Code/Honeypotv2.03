@@ -115,6 +115,12 @@ class CriticalHardeningTests(unittest.TestCase):
 
         logger = honeypot.Logger()
         self.assertTrue(any(isinstance(handler, logging.handlers.RotatingFileHandler) for handler in logger._log.handlers))
+    def test_rdp_smb_sensor_gap_is_documented_as_roadmap_not_silent_missing(self):
+        contributing = (ROOT / "CONTRIBUTING.md").read_text()
+        self.assertIn("RDP", contributing)
+        self.assertIn("SMB", contributing)
+        self.assertIn("authorized", contributing.lower())
+
 
     def test_production_compose_uses_safe_volumes_and_log_limits(self):
         text = (ROOT / "docker-compose.production.yml").read_text()
@@ -151,6 +157,11 @@ class CriticalHardeningTests(unittest.TestCase):
         text = (ROOT / "docker-compose.yml").read_text()
         self.assertNotIn("replace_with_a_32_plus_character_secret", text)
         self.assertIn("N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set_N8N_ENCRYPTION_KEY_in_.env}", text)
+
+    def test_optional_n8n_image_is_pinned_for_reproducible_setup(self):
+        text = (ROOT / "docker-compose.yml").read_text()
+        self.assertIn("image: ${N8N_IMAGE:-n8nio/n8n:1.123.51}", text)
+        self.assertNotIn("n8nio/n8n:latest", text)
 
     def test_dashboard_is_noindex_by_default(self):
         html = (ROOT / "dashboard" / "index.html").read_text()

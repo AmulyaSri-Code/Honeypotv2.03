@@ -25,10 +25,12 @@ Important: HoneyPot v3 is for defensive monitoring only. Deploy it only on syste
 Core runtime:
 
 - `main.py` starts the API/dashboard and service sensors
-- `api.py` exposes dashboard routes, JSON APIs, auth, alerts, users, keys, and deployment checks
-- `honeypot.py` contains the service listener implementations
-- `core/` contains database, logging, geolocation, service, and shell helpers
-- `services/` contains protocol-specific service modules
+- `api.py` exposes dashboard routes, JSON APIs, auth, alerts, users, keys, reports, deployment checks, robots/sitemap metadata, and public decoy responses
+- `honeypot.py` contains the service listener implementations for SSH, FTP, HTTP, Telnet, and raw TCP plus database/log helpers
+- `security.py` contains password hashing, token, API-key, and production secret validation helpers
+- `notifications.py` handles optional Slack, Discord, Telegram, n8n, and SMTP alert delivery
+- `enrichment.py` handles optional IP/ASN reputation enrichment
+- `v31_core.py` contains deception, replay, async/buffering, and HTTP fingerprinting helpers
 - `ml/` contains the training dataset, classifier, vectorizer, and model artifacts
 - `dashboard/index.html` is the operator dashboard
 - `setup.py` generates a local `.env` configuration
@@ -43,6 +45,27 @@ Default ports:
 | HTTP sensor | 8080 |
 | Telnet sensor | 2323 |
 | Raw TCP/NC sensor | 4444 |
+
+## Setup chooser
+
+If you are not sure which setup path fits your goal, start with:
+
+```text
+SETUP_CHOOSER.md
+```
+
+Recommended paths:
+
+| Goal | Start here |
+| --- | --- |
+| Test locally on your computer | `./scripts/quick_deploy.sh local` |
+| Deploy quickly on a VPS | `./scripts/quick_deploy.sh docker` |
+| Add HoneyPot beside an existing website | `WEBSITE_BACKEND_INTEGRATION.md` |
+| Prepare for internet exposure | `GO_LIVE_CHECKLIST.md` |
+| Recover from setup issues | `TROUBLESHOOTING.md` |
+| Plan maintenance | `BACKUP_RESTORE_UPGRADE.md` |
+
+Keep the dashboard/API private in every path. Expose only the sensor ports or trap paths you intentionally want to monitor.
 
 ## Quick Start
 

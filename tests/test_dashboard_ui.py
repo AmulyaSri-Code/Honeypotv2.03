@@ -137,6 +137,43 @@ class DashboardUiTests(unittest.TestCase):
                 self.assertIn(snippet, self.html)
         self.assertNotIn("index, follow, max-image-preview", self.html)
 
+    def test_dashboard_has_setup_readiness_onboarding_card(self):
+        required = [
+            "id=\"setup-readiness-panel\"",
+            "id=\"setup-readiness-list\"",
+            "id=\"setup-readiness-summary\"",
+            "Setup readiness",
+            "Private dashboard",
+            "Alert delivery",
+            "ML classifier",
+            "function loadSetupReadiness",
+            "function renderSetupReadiness",
+            "/api/setup/status",
+        ]
+        for snippet in required:
+            with self.subTest(snippet=snippet):
+                self.assertIn(snippet, self.html)
+
+    def test_setup_readiness_card_is_included_in_responsive_layout_rules(self):
+        self.assertIn(".alerts,.setup-readiness,.chart-panel,.terminal-panel{grid-column:span 12}", self.html)
+        self.assertIn(".alerts,.setup-readiness,.chart-panel,.terminal-panel{grid-column:1}", self.html)
+
+    def test_setup_readiness_ui_does_not_include_secret_value_placeholders(self):
+        forbidden = [
+            "SLACK_WEBHOOK_URL",
+            "TELEGRAM_BOT_TOKEN",
+            "DISCORD_WEBHOOK_URL",
+            "N8N_WEBHOOK_URL",
+            "HONEYPOT_AUTH_SECRET",
+            "HONEYPOT_ADMIN_PASS",
+            "hooks.slack.com/...",
+            "123456:token",
+        ]
+        setup_section = self.html.split('id=\"setup-readiness-panel\"', 1)[-1]
+        for snippet in forbidden:
+            with self.subTest(snippet=snippet):
+                self.assertNotIn(snippet, setup_section)
+
 
 if __name__ == "__main__":
     unittest.main()

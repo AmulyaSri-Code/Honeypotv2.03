@@ -139,8 +139,66 @@ def parse_limit(value, default=100, minimum=1, maximum=500):
     return max(minimum, min(parsed, maximum))
 
 
+def rate_limit_backend():
+    return os.environ.get("HONEYPOT_RATE_LIMIT_BACKEND", "memory").strip().lower()
+
+
+def _rate_limit_timestamp():
+    return datetime.now(timezone.utc).timestamp()
+
+
+def _ensure_rate_limit_table(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rate_limits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scope TEXT NOT NULL,
+            identity TEXT NOT NULL,
+            timestamp REAL NOT NULL
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rate_limits_scope_identity_time ON rate_limits(scope, identity, timestamp)")
+
+
+def persistent_rate_limited(scope, identity, window_seconds, max_attempts):
+    now = _rate_limit_timestamp()
+    cutoff = now - window_seconds
+    conn = get_db()
+    _ensure_rate_limit_table(conn)
+    conn.execute("DELETE FROM rate_limits WHERE timestamp < ?", (cutoff,))
+    count = conn.execute(
+        "SELECT COUNT(*) FROM rate_limits WHERE scope=? AND identity=? AND timestamp >= ?",
+        (scope, identity, cutoff),
+    ).fetchone()[0]
+    conn.commit()
+    conn.close()
+    return count >= max_attempts
+
+
+def mark_persistent_rate(scope, identity):
+    conn = get_db()
+    _ensure_rate_limit_table(conn)
+    conn.execute(
+        "INSERT INTO rate_limits (scope, identity, timestamp) VALUES (?, ?, ?)",
+        (scope, identity, _rate_limit_timestamp()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def clear_rate_limit(scope, identity):
+    conn = get_db()
+    _ensure_rate_limit_table(conn)
+    conn.execute("DELETE FROM rate_limits WHERE scope=? AND identity=?", (scope, identity))
+    conn.commit()
+    conn.close()
+
+
 def rate_limited(ip):
-    now = datetime.now(timezone.utc).timestamp()
+    if rate_limit_backend() == "sqlite":
+        return persistent_rate_limited("login", ip, LOGIN_WINDOW_SECONDS, LOGIN_MAX_ATTEMPTS)
+    now = _rate_limit_timestamp()
     attempts = _login_attempts.get(ip, [])
     attempts = [ts for ts in attempts if now - ts <= LOGIN_WINDOW_SECONDS]
     _login_attempts[ip] = attempts
@@ -148,14 +206,19 @@ def rate_limited(ip):
 
 
 def mark_login_attempt(ip):
-    now = datetime.now(timezone.utc).timestamp()
+    if rate_limit_backend() == "sqlite":
+        mark_persistent_rate("login", ip)
+        return
+    now = _rate_limit_timestamp()
     attempts = _login_attempts.get(ip, [])
     attempts.append(now)
     _login_attempts[ip] = attempts
 
 
 def request_rate_limited(ip):
-    now = datetime.now(timezone.utc).timestamp()
+    if rate_limit_backend() == "sqlite":
+        return persistent_rate_limited("request", ip, REQUEST_WINDOW_SECONDS, REQUEST_MAX_PER_WINDOW)
+    now = _rate_limit_timestamp()
     attempts = _request_attempts.get(ip, [])
     attempts = [ts for ts in attempts if now - ts <= REQUEST_WINDOW_SECONDS]
     _request_attempts[ip] = attempts
@@ -163,7 +226,10 @@ def request_rate_limited(ip):
 
 
 def mark_request(ip):
-    now = datetime.now(timezone.utc).timestamp()
+    if rate_limit_backend() == "sqlite":
+        mark_persistent_rate("request", ip)
+        return
+    now = _rate_limit_timestamp()
     attempts = _request_attempts.get(ip, [])
     attempts.append(now)
     _request_attempts[ip] = attempts
@@ -770,6 +836,57 @@ def _deployment_checks():
     ]
 
 
+def _db_path_writable(path):
+    try:
+        db_path = Path(path)
+        parent = db_path.parent if db_path.parent != Path("") else Path(".")
+        return parent.exists() and os.access(parent, os.W_OK)
+    except OSError:
+        return False
+
+
+def _admin_configured():
+    if os.environ.get("HONEYPOT_ADMIN_USER") and os.environ.get("HONEYPOT_ADMIN_PASS"):
+        return True
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()
+        conn.close()
+        return bool(row and row[0] > 0)
+    except sqlite3.Error:
+        return False
+
+
+def setup_status_payload():
+    """Safe setup-readiness facts for first-login and operator checklists."""
+    alert_status = provider_status()
+    try:
+        from ml import attack_classifier
+        ml_details = attack_classifier.predict_details("whoami")
+        ml_loaded = bool(ml_details.get("model_loaded"))
+        ml_error = ml_details.get("error") or ""
+    except Exception as exc:
+        ml_loaded = False
+        ml_error = exc.__class__.__name__
+    return {
+        "env_exists": Path(os.environ.get("HONEYPOT_ENV_FILE", ".env")).exists(),
+        "auth_secret_strong": auth_secret_is_strong(os.environ.get("HONEYPOT_AUTH_SECRET", DEFAULT_AUTH_SECRET)),
+        "admin_configured": _admin_configured(),
+        "dashboard_private": os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1") not in {"0.0.0.0", "::"},
+        "db_writable": _db_path_writable(os.environ.get("HONEYPOT_DB_PATH", DB_PATH)),
+        "ml_loaded": ml_loaded,
+        "ml_error": ml_error,
+        "alerts_enabled": alert_status["enabled"],
+        "providers_configured": {name: bool(details.get("configured")) for name, details in alert_status["providers"].items()},
+    }
+
+
+@app.route("/api/setup/status")
+@requires_token()
+def setup_status():
+    return jsonify(setup_status_payload())
+
+
 @app.route("/api/threats/summary")
 @requires_token()
 def threat_summary():
@@ -1324,9 +1441,14 @@ def start_services():
         if not svc.running:
             svc.start()
 
-if __name__ == "__main__":
+def run_standalone_server():
+    validate_production_startup_config()
     bootstrap_admin()
     start_services()
     bind_host = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1")
     dashboard_port = int(os.environ.get("HONEYPOT_DASHBOARD_PORT", "5050"))
     app.run(host=bind_host, port=dashboard_port, debug=False)
+
+
+if __name__ == "__main__":
+    run_standalone_server()

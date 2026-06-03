@@ -22,6 +22,8 @@ class NotificationTests(unittest.TestCase):
         os.environ["TELEGRAM_BOT_TOKEN"] = "123:secret"
         os.environ["TELEGRAM_CHAT_ID"] = "12345"
         os.environ["N8N_WEBHOOK_URL"] = "https://n8n.test/webhook/secret"
+        os.environ["SMTP_HOST"] = "smtp.example.test"
+        os.environ["SMTP_TO"] = "soc@example.test"
 
         status = notifications.provider_status()
 
@@ -30,6 +32,7 @@ class NotificationTests(unittest.TestCase):
         self.assertTrue(status["providers"]["discord"]["configured"])
         self.assertTrue(status["providers"]["telegram"]["configured"])
         self.assertTrue(status["providers"]["n8n"]["configured"])
+        self.assertTrue(status["providers"]["smtp"]["configured"])
         self.assertNotIn("secret", repr(status))
 
     def test_disabled_alerts_do_not_send(self):
@@ -93,6 +96,25 @@ class NotificationTests(unittest.TestCase):
         self.assertEqual(payload["source"], "HoneyPot v3")
         self.assertEqual(payload["event"], event)
         self.assertIn("summary", payload)
+
+    def test_smtp_provider_status_and_delivery(self):
+        os.environ["HONEYPOT_ALERTS_ENABLED"] = "true"
+        os.environ["HONEYPOT_ALERT_MIN_INTERVAL_SECONDS"] = "0"
+        os.environ["SMTP_HOST"] = "smtp.example.test"
+        os.environ["SMTP_TO"] = "soc@example.test"
+        os.environ["SMTP_FROM"] = "honeypot@example.test"
+
+        with patch.object(notifications, "_send_smtp", return_value=True) as send_smtp:
+            result = notifications.send_alert({
+                "attack_category": "Malware Attempt",
+                "severity": "critical",
+                "service": "ssh",
+                "ip": "1.2.3.4",
+            })
+
+        self.assertTrue(result["sent"])
+        self.assertTrue(result["providers"]["smtp"]["ok"])
+        send_smtp.assert_called_once()
 
 
 if __name__ == "__main__":

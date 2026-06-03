@@ -31,8 +31,9 @@ services:
     restart: unless-stopped
 
   # Optional local automation. Start with: docker compose --profile automation up -d n8n
+  # Pin n8n for reproducible installs; override N8N_IMAGE only after testing upgrades.
   n8n:
-    image: n8nio/n8n:latest
+    image: ${N8N_IMAGE:-n8nio/n8n:1.123.51}
     container_name: honeypot_n8n
     ports:
       - "127.0.0.1:5678:5678"

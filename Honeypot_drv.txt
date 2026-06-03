@@ -665,3 +665,306 @@ Recommended next sprint:
 3. Add TROUBLESHOOTING.md and GO_LIVE_CHECKLIST.md.
 4. Add service-level integration tests.
 5. Improve n8n workflow validation/import coverage.
+
+---
+Team 3 Setup Ease / Real-World Readiness Thinking Session
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Timestamp: 2026-06-03T17:29:35Z
+Progress: 82%
+
+User request:
+- Start Team 3 thinking on the project.
+- Find how to make HoneyPot v3 easy for users to set up, including everything.
+
+Verification baseline from this session:
+- Git branch: main tracking origin/main.
+- Current working tree already has source/test changes and untracked ml/artifacts.sha256.
+- Python compile check passed for app, ml, and tests.
+- Shell syntax passed for scripts/quick_deploy.sh and docker-entrypoint.sh.
+- docker compose config passed for docker-compose.yml.
+- docker compose -f docker-compose.production.yml config passed.
+- Full pytest currently: 95 passed, 3 failed, 76 subtests passed.
+- Failing checks:
+  1. CONTRIBUTING.md missing; tests expect it and expect RDP/SMB roadmap wording.
+  2. ml/dataset.csv has 235 training rows; tests expect at least 250 rows.
+  3. .github/workflows/ci.yml plus TROUBLESHOOTING.md, GO_LIVE_CHECKLIST.md, CONTRIBUTING.md are missing.
+
+What Team 3 thinks is already strong:
+- One-command quick deployment exists for Docker and local Python.
+- Docker dashboard/API is private by default on 127.0.0.1:5050.
+- Website sidecar pattern is the right user-friendly architecture: real website handles normal traffic; suspicious trap paths route to HoneyPot HTTP sensor; dashboard stays private.
+- setup.py generates safe local .env values and owner-only permissions.
+- Alert providers are optional, and status/test API exists.
+- Case/report APIs and dashboard panels already exist.
+- Production compose already includes some resource/log hardening.
+- .dockerignore now protects secrets/runtime artifacts from Docker build context.
+
+Main conclusion:
+HoneyPot v3 is technically close, but setup guidance is still scattered across README.md, QUICK_DEPLOY.md, WEBSITE_BACKEND_INTEGRATION.md, PRODUCTION_DEPLOYMENT.md, and ALERT_NOTIFICATION_SETUP.md. To make setup easy for normal website owners, Team 3 should turn the current docs into a guided setup journey: chooser -> one-command deploy -> first login -> verification -> go-live checklist -> troubleshooting -> backup/restore -> alert automation.
+
+Highest-priority setup-ease deliverables:
+1. SETUP_CHOOSER.md
+   - Help users choose: local lab, Docker VPS, existing website sidecar, public decoy VPS, automation add-on.
+   - For each path include: who it is for, time estimate, skill level, required tools, ports used, what must stay private, commands, expected success output, and next doc link.
+
+2. TROUBLESHOOTING.md
+   - Problem -> command -> expected output -> fix.
+   - Cover Docker missing, healthcheck failed, port conflicts, cannot log in, dashboard unreachable from another machine, sensors not receiving traffic, website sidecar route problems, alerts not firing, n8n webhook inactive, DB/log permissions, and production startup refusing weak secrets.
+
+3. GO_LIVE_CHECKLIST.md
+   - Preflight: authorized infrastructure, .env exists/not committed, credentials saved/deleted, dashboard private, secrets strong, cookie secure behind HTTPS, firewall exposes only intended sensor ports, proxy forwards real IP safely, alerts tested, backups/log rotation ready, compose config passes, /api/health returns 200.
+   - Website sidecar checks: homepage still real site, only trap paths route to HoneyPot, /.env and /wp-login.php tests appear in dashboard.
+   - Post-live: watch logs, confirm alerts, confirm disk usage, confirm restart behavior.
+
+4. BACKUP_RESTORE_UPGRADE.md
+   - Docker volume backup/restore.
+   - Local .env/db/log backup.
+   - sqlite .backup example.
+   - Upgrade and rollback flow with health checks.
+
+5. CONTRIBUTING.md
+   - Required by tests.
+   - Include defensive/authorized-use policy.
+   - Document RDP/SMB as roadmap items so missing sensors are explicit, not silent gaps.
+   - Include test/verification commands and artifact hygiene rules.
+
+6. .github/workflows/ci.yml
+   - Required by tests.
+   - Should run Python compile, pytest, docker compose config, production compose config, shell syntax checks, and JSON/workflow validation where applicable.
+
+7. Setup/doctor command
+   - Add make doctor or scripts/doctor.sh.
+   - Check Python/venv, .env permissions, DB path writability, Docker status, compose config, dashboard health, sensor ports, ML artifacts/hash, alert provider completeness, n8n optional state.
+   - This will help users self-debug without reading every doc.
+
+8. First-login dashboard onboarding
+   - Add a setup checklist card after login.
+   - Show dashboard privacy, auth secret strength, admin configured, cookie secure, DB writable, sensors running, ML loaded, alerts configured/tested, n8n optional state, backup reminder.
+   - Add setup status endpoint with safe booleans only; do not expose secrets.
+
+Concrete doc structure Team 3 recommends:
+- README.md: short overview, safety warning, setup chooser table, fastest Docker path, links.
+- QUICK_DEPLOY.md: one-command deploy, prompts, expected outputs, first login, verify/stop/logs.
+- SETUP_CHOOSER.md: local lab / Docker VPS / website sidecar / public decoy / automation add-on.
+- WEBSITE_BACKEND_INTEGRATION.md: sidecar pattern, trap paths, Nginx/Caddy/framework examples, verification commands.
+- PRODUCTION_DEPLOYMENT.md: hardened deployment, firewall, reverse proxy, production compose, security settings.
+- TROUBLESHOOTING.md: setup and runtime recovery runbook.
+- GO_LIVE_CHECKLIST.md: preflight, go-live, post-live checks.
+- BACKUP_RESTORE_UPGRADE.md: backup, restore, upgrade, rollback.
+- ALERT_NOTIFICATION_SETUP.md: provider-specific alert setup and test results; remove local absolute paths.
+- CONTRIBUTING.md: contributor workflow, tests, safety policy, roadmap gaps.
+
+Specific setup simplifications for non-experts:
+- Put a setup chooser at the top of README and QUICK_DEPLOY.
+- Add expected output after every command.
+- Clearly say: dashboard/API private by default; expose only sensor ports intentionally.
+- For existing websites, route only suspicious paths like /.env, /.git, /wp-login.php, /wp-admin, /phpmyadmin, /adminer, /cgi-bin, /server-status, /manager/html.
+- Warn WordPress owners not to route real /wp-admin or /wp-login.php to HoneyPot if they actually use WordPress.
+- Add UFW, cloud security group, Nginx, Caddy, Tailscale, and Cloudflare Access examples.
+- Clarify that n8n/Slack/Discord/Telegram are optional; setup is not complete until a real test alert succeeds.
+- Make .deploy-credentials.txt handling explicit: save in password manager, then delete it.
+- Clarify product naming: docs should use HoneyPot v3; examples should use ~/honeypot-v3 or /opt/honeypot-v3, not local /Users/... paths.
+
+Security/deployment issues Team 3 still wants fixed or verified:
+1. api.py direct startup should enforce validate_production_startup_config(), not only main.py.
+2. Docker warning logic should not falsely warn about HONEYPOT_BIND_HOST=0.0.0.0 inside a container when host publishes dashboard on 127.0.0.1.
+3. Production compose should move toward read_only: true with writable /app/data, /app/logs, and /tmp tmpfs only.
+4. External IP enrichment currently uses plaintext ip-api URLs; use HTTPS-capable provider or clearly document privacy tradeoff and opt-in behavior.
+5. ML artifact policy must be clear: either track model/vectorizer/artifacts.sha256 together or generate all during setup/build.
+6. Alert dashboard secret writes should be explicit because they write plaintext secrets into .env; consider disabling dashboard secret writes by default for production.
+7. Add provider-by-provider alert test buttons and clearer last-test status.
+8. Add runtime dashboard/browser tests; static string tests are not enough for operator UX.
+
+Recommended next implementation order:
+1. Create CONTRIBUTING.md, TROUBLESHOOTING.md, GO_LIVE_CHECKLIST.md, and .github/workflows/ci.yml to satisfy existing tests and improve user setup.
+2. Add at least 15 safe/credible rows to ml/dataset.csv or adjust the test if the threshold is wrong.
+3. Rerun full pytest and compose checks until green.
+4. Add SETUP_CHOOSER.md and BACKUP_RESTORE_UPGRADE.md.
+5. Update README.md and QUICK_DEPLOY.md to link the chooser and show expected outputs.
+6. Add make doctor / scripts/doctor.sh.
+7. Add dashboard setup checklist and provider-specific alert test UX.
+
+Team 3 guidance to other teams:
+- Security: keep dashboard private, fail closed on weak secrets, protect bootstrap, avoid secret leaks, harden Docker.
+- Deployment: make one-command setup reliable, add doctor/preflight checks, provide firewall/reverse-proxy examples.
+- Docs/Product: create chooser, troubleshooting, go-live, backup/restore, and clean naming/path inconsistencies.
+- Dashboard: first-login onboarding, setup checklist, alert provider cards, case/report actions.
+- Automation: keep n8n optional but verifiable; test real webhook delivery before claiming alerts work.
+- ML/Data: make artifact policy and dataset credibility pass CI.
+
+Current Team 3 status:
+- Thinking/audit phase complete enough to guide implementation: 82%.
+- Project is not release-green yet because pytest has 3 failures.
+- Next best action is to implement the missing operator docs/CI files and dataset fix, then rerun verification.
+
+---
+Team 3 Setup Ease Implementation Follow-up
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Timestamp: 2026-06-03T17:29:35Z
+Progress: 100%
+
+Implemented immediate setup-ease and release-readiness items from the Team 3 audit:
+- Created CONTRIBUTING.md with defensive/authorized-use rules, verification workflow, artifact hygiene, and explicit RDP/SMB roadmap gap wording.
+- Created TROUBLESHOOTING.md with problem -> command -> expected output -> fix guidance for Docker, health, ports, login, private dashboard access, sensors, website sidecar routing, alerts, n8n, permissions, and production secret failures.
+- Created GO_LIVE_CHECKLIST.md with authorization, preflight, website sidecar, public decoy VPS, and post-live checks.
+- Created SETUP_CHOOSER.md covering local lab, Docker quick deploy, existing website sidecar, public decoy VPS, and automation add-on paths.
+- Created BACKUP_RESTORE_UPGRADE.md covering Docker/local backups, restore, upgrade, and rollback.
+- Created .github/workflows/ci.yml to run install, compile, shell syntax, compose config, and pytest.
+- Updated README.md with a setup chooser section and corrected architecture references to actual project files.
+- Updated QUICK_DEPLOY.md with links to chooser, go-live, troubleshooting, and backup/restore docs plus expected success signal.
+- Expanded ml/dataset.csv with additional safe training rows so dataset credibility tests pass.
+
+Verification after implementation:
+- Python compile check passed.
+- scripts/quick_deploy.sh and docker-entrypoint.sh bash syntax passed.
+- docker compose config passed.
+- docker compose -f docker-compose.production.yml config passed.
+- Full pytest passed: 98 passed, 79 subtests passed.
+
+Current status:
+- Team 3 setup-thinking and immediate setup-ease implementation are complete for this pass.
+- Work remains uncommitted because the tree already contained multiple pre-existing source/test changes plus untracked ml/artifacts.sha256; review/stage intentionally before commit.
+
+---
+Team 2 Setup Readiness Implementation Session
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Scope for this pass:
+- Make setup easier for normal users and website owners by adding an operator-facing readiness check.
+- Keep setup checks safe: return booleans/status only, never webhook URLs, bot tokens, or other secret values.
+- Make direct api.py production startup fail closed before starting sensors when the auth secret is default/weak.
+
+Implemented so far:
+- Added authenticated GET /api/setup/status in api.py.
+- Added setup_status_payload() with safe checks for .env presence, auth secret strength, admin readiness, private dashboard binding, writable DB directory, ML load state, alert enablement, and provider completeness.
+- Added scripts/doctor.sh for local/offline/online preflight checks.
+- Added make doctor shortcut.
+- Updated QUICK_DEPLOY.md and GO_LIVE_CHECKLIST.md to tell users how to run doctor checks and verify setup readiness.
+- Added TDD coverage for /api/setup/status authentication and secret redaction, scripts/doctor.sh offline mode, make doctor presence, and direct api.py production validation.
+
+Verification complete:
+- Initial RED check failed as expected before implementation: missing /api/setup/status, missing scripts/doctor.sh, missing make doctor, and direct api.py did not validate the weak production auth secret first.
+- Targeted Team 2 tests passed: 4 passed.
+- Focused setup/security tests passed: 37 passed, 28 subtests passed.
+- Shell syntax passed: bash -n scripts/doctor.sh scripts/quick_deploy.sh docker-entrypoint.sh.
+- Doctor offline preflight passed: PASS=12 WARN=0 FAIL=0.
+- Full pytest suite passed: 102 passed, 79 subtests passed.
+
+Current status:
+- Team 2 setup-readiness implementation is complete for this pass.
+- Work remains uncommitted because the tree includes pre-existing Team 3/source/test/doc changes plus new Team 2 changes; review/stage intentionally before commit.
+
+---
+Team 3 Real-World Readiness Re-check
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Verification baseline:
+- Full pytest suite passed: 102 passed, 79 subtests passed.
+- Python compile check passed for api.py, honeypot.py, security.py, notifications.py, ml, and tests.
+- Shell syntax passed for scripts/quick_deploy.sh, scripts/doctor.sh, and docker-entrypoint.sh.
+- docker compose config passed for docker-compose.yml.
+- docker compose -f docker-compose.production.yml config passed.
+- Dashboard inline JavaScript syntax check passed with node --check.
+- Local ./scripts/doctor.sh --offline passed with PASS=11 WARN=1 FAIL=0. Warning is local .env admin password missing/weak or bootstrap pending.
+- Temporary cache artifacts were cleaned: __pycache__, tests/__pycache__, ml/__pycache__, tools/__pycache__, .pytest_cache, path, and reports.
+
+What is now strong:
+- Docker build context excludes .env, .env.*, DBs, logs, reports, cache dirs, local credentials, and runtime artifacts through .dockerignore.
+- Dashboard/API host port remains loopback-private in default and production compose.
+- First-admin remote bootstrap is protected: loopback by default, token-supported for remote bootstrap, and production validates remote bootstrap token strength when enabled.
+- Production startup now fails closed for weak/default auth secret and weak/default admin/default-admin settings.
+- Local vs Docker DB paths are separated in quick deploy.
+- Setup chooser, troubleshooting, go-live checklist, backup/restore/upgrade, contributing, CI workflow, doctor script, and setup status API are present.
+- n8n/Slack/Telegram/Discord alert integrations remain optional and status APIs expose provider booleans rather than secrets.
+
+Remaining Team 3 gaps to consider next:
+1. Dashboard onboarding should consume /api/setup/status and show a visible setup checklist after login, not only expose the backend endpoint.
+2. n8n image is still latest in docker-compose.yml; consider pinning to a tested version for reproducible deployments.
+3. docker-compose.production.yml still has read_only: false. It is acceptable for SQLite/logs but should be revisited with explicit writable paths if stronger container hardening is desired.
+4. Browser-level dashboard coverage is still mostly static/API oriented; add Playwright/jsdom smoke tests for login, setup checklist rendering, alert config/test buttons, service toggles, and API error states.
+5. Local .env doctor warning remains: set a strong HONEYPOT_ADMIN_PASS or complete bootstrap before treating this local checkout as go-live ready.
+
+Current git status:
+- Branch main is up to date with origin/main.
+- Work remains uncommitted.
+- Useful local ignored runtime files remain: .env, .venv, honeypot.db, honeypot.log.
+
+---
+Team 3 -> Team 2 Handoff
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 10%
+
+Message to Team 2:
+- Team 3 re-checked the project and recommends the next setup-ease sprint: make the dashboard visibly consume GET /api/setup/status after login.
+- Goal: normal website owners should not need to read API docs or run curl to understand setup readiness. The dashboard should show a clear onboarding/setup checklist card with pass/warn states and next actions.
+- Keep the same safety rule as the backend endpoint: show only booleans/status/action text, never raw .env values, webhook URLs, bot tokens, credentials, or DB contents.
+- Start now with TDD: add dashboard UI tests proving the checklist exists, calls /api/setup/status, renders each setup item, uses safe labels, and contains no secret-value placeholders.
+
+Team 2 started implementation immediately after this handoff.
+
+Team 2 Dashboard Onboarding Implementation
+Progress: 100%
+
+Implemented:
+- Added a visible dashboard Setup readiness card using the safe authenticated GET /api/setup/status endpoint.
+- Added safe operator checklist rendering for Environment file, Auth secret, Admin account, Private dashboard, Database writable, ML classifier, and Alert delivery.
+- Added pass/action labels and next-step text without exposing raw env values, webhooks, bot tokens, credentials, or DB contents.
+- Wired setup readiness into the dashboard refresh loop so the checklist updates after login along with the rest of the SOC dashboard.
+
+Verification:
+- RED confirmed before implementation: new dashboard UI tests failed because the setup readiness card and /api/setup/status client call were missing.
+- Dashboard onboarding tests passed: 2 passed, 18 subtests passed.
+- Executable dashboard JavaScript syntax passed with node --check.
+- Focused dashboard/setup/security tests passed: 51 passed, 97 subtests passed.
+- Shell syntax passed for scripts/doctor.sh, scripts/quick_deploy.sh, and docker-entrypoint.sh.
+- docker compose config passed for default and production compose files.
+- Full pytest suite passed: 104 passed, 97 subtests passed.
+
+---
+Team 3 Re-check After Dashboard Onboarding
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Verification baseline:
+- Python compile check passed for app, ml, and tests.
+- Full pytest suite passed before Team 3 fix: 104 passed, 97 subtests passed.
+- Shell syntax passed for scripts/doctor.sh, scripts/quick_deploy.sh, and docker-entrypoint.sh.
+- docker compose config passed for default and production compose files.
+- Executable dashboard JavaScript syntax passed with node --check.
+- ./scripts/doctor.sh --offline passed with PASS=11 WARN=1 FAIL=0. Warning remains local admin password/bootstrap readiness only.
+- Temporary verification caches were cleaned after checks.
+
+Team 3 finding fixed during re-check:
+- The new setup readiness dashboard card was not included in the tablet/mobile responsive grid selectors.
+- Added a regression test to tests/test_dashboard_ui.py.
+- Updated dashboard/index.html so .setup-readiness collapses correctly at max-width 1200px and 900px.
+
+Post-fix verification:
+- Dashboard UI tests passed: 15 passed, 69 subtests passed.
+- Shell syntax and Compose validation passed.
+- Full pytest suite passed after fix: 105 passed, 97 subtests passed.
+
+Remaining Team 3 gaps:
+1. Add true browser/jsdom/Playwright smoke tests for login, rendering setup status payloads, API error states, alert actions, service toggles, and navigation.
+2. Pin n8nio/n8n away from latest in docker-compose.yml for reproducible deployments.
+3. Revisit docker-compose.production.yml read_only: false with explicit writable paths if stronger container hardening is desired.
+4. Resolve local .env go-live warning by setting a strong HONEYPOT_ADMIN_PASS or completing bootstrap before treating this checkout as production-ready.
+
+---
+Team 3 -> Team 2 Handoff: Reproducible Optional Automation
+Project: /Users/amulyasrivastava/Desktop/Honeypotv2.03
+Progress: 100%
+
+Team 3 asked Team 2 to start on the next highest-impact user setup gap: remove the floating n8nio/n8n:latest tag from docker-compose.yml so optional n8n automation installs are reproducible.
+
+Team 2 implementation:
+- Pinned the optional n8n service image to ${N8N_IMAGE:-n8nio/n8n:1.123.51}.
+- Kept an N8N_IMAGE override for operators who intentionally test and upgrade later.
+- Added a hardening regression test so n8nio/n8n:latest does not return.
+
+Cleanup/GitHub hygiene:
+- Checked for tracked generated junk: pycache, .pytest_cache, local DB/log files, reports, and path artifact.
+- No tracked generated junk was found in Git.
+- Ignored local runtime files remain local only: .env, .venv, honeypot.db, honeypot.log.

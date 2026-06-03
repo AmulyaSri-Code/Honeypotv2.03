@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Python compile check
+        run: python -m compileall -q api.py main.py honeypot.py security.py notifications.py setup.py ml tests
+
+      - name: Shell syntax check
+        run: bash -n scripts/quick_deploy.sh docker-entrypoint.sh
+
+      - name: Docker Compose config check
+        run: |
+          docker compose config >/tmp/honeypot-compose.yml
+          docker compose -f docker-compose.production.yml config >/tmp/honeypot-production-compose.yml
+
+      - name: Tests
+        run: pytest -q

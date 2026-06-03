@@ -1,6 +1,15 @@
 # HoneyPot v3 Quick Deploy
 
-This is the fastest safe path for a new user.
+This is the fastest safe path for a new user. If you are not sure which deployment path fits your goal, read `SETUP_CHOOSER.md` first.
+
+Quick links:
+
+- `SETUP_CHOOSER.md`: choose local lab, Docker VPS, website sidecar, public decoy, or automation add-on.
+- `GO_LIVE_CHECKLIST.md`: verify before exposing sensors or routing website traffic.
+- `TROUBLESHOOTING.md`: fix common setup and runtime problems.
+- `BACKUP_RESTORE_UPGRADE.md`: back up, restore, upgrade, and roll back.
+
+Expected Docker success signal: `.env` and `.deploy-credentials.txt` are created, the container starts, and `/api/health` returns HTTP 200.
 
 ## Option A: Docker, recommended
 
@@ -25,8 +34,15 @@ Useful commands:
 
 ```bash
 ./scripts/quick_deploy.sh status
+make doctor        # run setup/readiness checks
 make logs
 make stop
+```
+
+The doctor check validates the basics that usually block first-time users: Python/Docker availability, `.env` permissions, auth secret strength, admin password baseline, private dashboard binding, writable database directory, ML artifact presence, alert provider completeness, and the live `/api/health` endpoint. Use offline mode before the app is started:
+
+```bash
+./scripts/doctor.sh --offline
 ```
 
 ## Option B: Local Python
