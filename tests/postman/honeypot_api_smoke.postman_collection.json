@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Honeypot API Smoke Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Fast smoke coverage for health, authentication, safe setup readiness, and protected dashboard APIs. Use Newman or import into Postman."
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://127.0.0.1:5055"},
+    {"key": "username", "value": "operator"},
+    {"key": "password", "value": "StrongPostmanPass123!"},
+    {"key": "token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Health is public",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('health returns 200', function () { pm.response.to.have.status(200); });",
+          "pm.test('health response is JSON', function () { pm.response.to.be.json; });"
+        ]}
+      }]
+    },
+    {
+      "name": "Setup status requires auth",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/setup/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('setup status rejects anonymous users', function () { pm.response.to.have.status(401); });"
+        ]}
+      }]
+    },
+    {
+      "name": "Login returns bearer token",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"username\":\"{{username}}\",\"password\":\"{{password}}\"}"},
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('login returns 200', function () { pm.response.to.have.status(200); });",
+          "var body = pm.response.json();",
+          "pm.test('access_token exists', function () { pm.expect(body.access_token).to.be.a('string').and.not.empty; });",
+          "pm.collectionVariables.set('token', body.access_token);"
+        ]}
+      }]
+    },
+    {
+      "name": "Current user works with token",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": "{{baseUrl}}/api/auth/me"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('me returns 200', function () { pm.response.to.have.status(200); });",
+          "var body = pm.response.json();",
+          "pm.test('me has username', function () { pm.expect(body.user.username).to.eql(pm.collectionVariables.get('username')); });"
+        ]}
+      }]
+    },
+    {
+      "name": "Setup readiness is safe with token",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": "{{baseUrl}}/api/setup/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('setup status returns 200', function () { pm.response.to.have.status(200); });",
+          "var body = pm.response.json();",
+          "['env_exists','auth_secret_strong','admin_configured','dashboard_private','db_writable','ml_loaded','alerts_enabled','providers_configured'].forEach(function (key) { pm.test(key + ' exists', function () { pm.expect(body).to.have.property(key); }); });",
+          "pm.test('does not expose known secret markers', function () { const body = pm.response.text(); pm.expect(body).to.not.include(pm.collectionVariables.get('password')); pm.expect(body).to.not.include('StrongPostmanPass123'); pm.expect(body).to.not.include('hooks.slack.com/services'); });"
+        ]}
+      }]
+    },
+    {
+      "name": "Protected stats works with token",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": "{{baseUrl}}/api/stats"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {"exec": [
+          "pm.test('stats returns 200', function () { pm.response.to.have.status(200); });",
+          "pm.test('stats response is JSON', function () { pm.response.to.be.json; });"
+        ]}
+      }]
+    }
+  ]
+}
